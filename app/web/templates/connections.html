@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Connections</h1>
+<p class="muted">Regex links are accepted automatically. Anything the model suggests waits here until
+you accept it; rejected edges are never used in answers.</p>
+
+<div class="card">
+  <h2 style="margin-top:0">Review queue ({{ pending|length }})</h2>
+  {% if pending %}
+  <table>
+    <tr><th>From</th><th>Relation</th><th>To</th><th>Origin</th><th></th></tr>
+    {% for edge in pending %}
+    <tr>
+      <td>{{ edge.src_symbol or edge.src_id }}</td>
+      <td><span class="pill">{{ edge.rel }}</span></td>
+      <td>{{ edge.dst_symbol or edge.dst_id }}</td>
+      <td class="muted">{{ edge.origin }} · {{ '%.2f'|format(edge.confidence or 0) }}</td>
+      <td>
+        <form method="post" action="/connections/{{ edge.id }}/accept" style="display:inline">
+          <button type="submit">Accept</button></form>
+        <form method="post" action="/connections/{{ edge.id }}/reject" style="display:inline">
+          <button class="quiet" type="submit">Reject</button></form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">Nothing waiting.</p>{% endif %}
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Accepted links (latest {{ accepted|length }})</h2>
+  <table>
+    <tr><th>From</th><th>Relation</th><th>To</th><th>Origin</th></tr>
+    {% for edge in accepted %}
+    <tr>
+      <td>{{ edge.src_symbol or edge.src_id }}</td>
+      <td><span class="pill ok">{{ edge.rel }}</span></td>
+      <td>{{ edge.dst_symbol or edge.dst_id }}</td>
+      <td class="muted">{{ edge.origin }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

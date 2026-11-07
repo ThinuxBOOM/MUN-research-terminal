@@ -1,0 +1,11 @@
+You write a short point-of-information question for a Model UN delegate.
+EVIDENCE (verbatim, from the library):
+{pack}
+
+TASK: {question}
+Return JSON only, matching this shape:
+{"question": "one neutral question, at most 25 words, no accusation",
+ "if_yes": "a follow-up if they answer yes, at most 20 words",
+ "if_no": "a follow-up if they answer no, at most 20 words",
+ "follow_up": "one pointed closing follow-up, at most 20 words"}
+Use only what the evidence supports. Do not state a quote in the question.

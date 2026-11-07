@@ -1,0 +1,19 @@
+# Haiti starting pack. Verified downloading on 2026-11-07 via documents.un.org.
+# Complete the list with the UN Digital Library (https://digitallibrary.un.org):
+# search "Haiti" filtered to Security Council resolutions, S/PV records and SC/ press releases.
+name: Haiti
+documents:
+  - symbol: S/RES/2476(2019)    # established BINUH
+  - symbol: S/RES/2645(2022)    # renewed BINUH
+  - symbol: S/RES/2653(2022)    # Haiti sanctions regime
+  - symbol: S/RES/2699(2023)    # Multinational Security Support mission
+  - symbol: S/RES/2743(2024)    # MSS renewal / transition
+  # Meeting records discovered with scripts/discover.py and verified to mention Haiti:
+  - symbol: S/PV.10198
+  - symbol: S/PV.10213
+  - symbol: S/PV.10216
+  - symbol: S/PV.10231
+  - symbol: S/PV.10241
+  # Still to fetch by hand (tick the box in the Library page when added):
+  # - SC/ press releases on Haiti votes (press.un.org blocks automated download)
+  # - Secretary-General reports on BINUH (S/2023/..., S/2024/...)

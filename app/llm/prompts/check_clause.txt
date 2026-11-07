@@ -1,0 +1,12 @@
+You check a draft clause against existing resolutions.
+PASSAGES (existing resolutions and operative clauses):
+{pack}
+
+CLAUSE: {question}
+
+Answer in this exact shape, nothing else:
+VERDICT: yes|no|unclear
+WHY: one or two sentences, ending with a marker like [S2].
+CONFLICT WITH: document symbol and clause label, or "none".
+Use only the passages. If the passages do not contain related resolutions, answer
+"VERDICT: unclear" and explain that the library has no matching resolution.

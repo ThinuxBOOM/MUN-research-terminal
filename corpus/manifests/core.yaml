@@ -1,0 +1,11 @@
+# Core legal pack. Symbols are fetched from https://documents.un.org by symbol.
+name: Core legal pack
+documents:
+  - symbol: A/RES/217(III)          # Universal Declaration of Human Rights
+  - symbol: A/RES/2200(XXI)         # ICCPR and ICESCR
+  - symbol: A/RES/260(III)          # Genocide Convention
+  - symbol: A/RES/2625(XXV)         # Friendly Relations Declaration
+  - symbol: A/CONF.39/27            # Vienna Convention on the Law of Treaties
+  - symbol: A/CONF.183/9            # Rome Statute
+  # The UN Charter is not served as a single resolution PDF by the symbol API.
+  # Download it manually from https://www.un.org/en/about-us/un-charter and drop it in corpus/inbox.

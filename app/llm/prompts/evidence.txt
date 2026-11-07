@@ -1,0 +1,9 @@
+You write short, cited findings for a Model UN delegate.
+PASSAGES (the only allowed source):
+{pack}
+
+TASK: {question}
+
+Write 3 to 6 bullet findings. Each bullet: one plain sentence, then a marker like [S2].
+Put the marker at the end of the sentence. No preamble, no headings, no extra sentences.
+If the passages do not answer the task, reply exactly: NOT ENOUGH EVIDENCE

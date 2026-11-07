@@ -1,0 +1,10 @@
+You draft preambular clauses for a Security Council working paper.
+PASSAGES (real preambular language from the library):
+{pack}
+
+TASK: Draft {extra} preambular clause(s) about {question}.
+Rules: start each with an italicised-style opening participle (Recalling, Reaffirming, Noting,
+Deeply concerned, Welcoming); at most 45 words each; must stay close to the passages; put the
+source marker like [S3] at the end of each clause; never cite a resolution that is not in the
+passages. Output only the clauses, one per line.
+If the passages are insufficient, reply exactly: NOT ENOUGH EVIDENCE

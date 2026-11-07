@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New conference</h1>
+<p class="muted">Fill this in once. The dossier is built from your library, not from the model's memory.</p>
+
+<form method="post" action="/conferences" class="card" id="confform">
+  <label for="name">Conference name</label>
+  <input id="name" name="name" required placeholder="e.g. Harvard WorldMUN 2027">
+
+  <div class="grid two">
+    <div>
+      <label for="committee">Committee</label>
+      <select id="committee" name="committee">
+        {% for c in committees %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="my_country">Your country</label>
+      <select id="my_country" name="my_country">
+        {% for iso3, info in country_options.items() %}
+          <option value="{{ iso3 }}">{{ info[0] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <label for="agenda">Agenda item</label>
+  <input id="agenda" name="agenda" required placeholder="The situation in Haiti">
+
+  <label for="topic">Library topic (used for filtering)</label>
+  <select id="topic" name="topic">
+    <option value="">All documents</option>
+    {% for topic in topics %}<option value="{{ topic.name }}">{{ topic.name }}</option>{% endfor %}
+  </select>
+
+  <label>Participating countries (UNSC-15 preset available)</label>
+  <div class="row" style="margin-bottom:8px">
+    <button type="button" class="quiet" id="preset">Use UNSC-15 preset</button>
+    <span class="muted" id="chosenCount">0 selected</span>
+  </div>
+  <select id="countries" multiple size="12" style="height:auto">
+    {% for iso3, info in country_options.items() %}
+      <option value="{{ iso3 }}">{{ info[0] }} ({{ iso3 }})</option>
+    {% endfor %}
+  </select>
+  <input type="hidden" name="countries_json" id="countries_json" value="[]">
+
+  <div class="grid two">
+    <div>
+      <label for="speech_seconds">Speech length (seconds)</label>
+      <input id="speech_seconds" name="speech_seconds" type="number" value="90" min="30" max="600">
+    </div>
+    <div>
+      <label for="want_working_paper">Working paper</label>
+      <select id="want_working_paper" name="want_working_paper">
+        <option value="on">Generate one</option>
+        <option value="off">Skip</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card" style="background:var(--panel-2);margin-top:16px">
+    <strong>Corpus coverage</strong>
+    <div id="coverage" class="muted">Pick a topic to check your library.</div>
+  </div>
+
+  <div class="row" style="margin-top:16px">
+    <button type="submit">Create conference</button>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+const countriesSelect = document.getElementById("countries");
+const preset = {{ unsc|tojson }};
+function syncCountries() {
+  const selected = [...countriesSelect.selectedOptions].map(o => o.value);
+  document.getElementById("countries_json").value = JSON.stringify(selected);
+  document.getElementById("chosenCount").textContent = selected.length + " selected";
+  checkCoverage();
+}
+countriesSelect.addEventListener("change", syncCountries);
+document.getElementById("preset").onclick = () => {
+  [...countriesSelect.options].forEach(o => o.selected = preset.includes(o.value));
+  syncCountries();
+};
+document.getElementById("committee").addEventListener("change", (e) => {
+  if (e.target.value !== "UNSC") document.getElementById("want_working_paper").value = "off";
+  else document.getElementById("want_working_paper").value = "on";
+});
+async function checkCoverage() {
+  const topic = document.getElementById("topic").value;
+  const selected = [...countriesSelect.selectedOptions].map(o => o.value).join(",");
+  const resp = await fetch(`/api/coverage?topic=${encodeURIComponent(topic)}&countries_param=${selected}`);
+  const data = await resp.json();
+  const gaps = data.countries_without_data || [];
+  const badge = data.verdict === "good" ? "pill ok" : "pill warn";
+  document.getElementById("coverage").innerHTML =
+    `<span class="${badge}">${data.verdict}</span> ${data.documents} documents · ${data.votes} vote rows` +
+    (gaps.length ? `<div style="margin-top:6px">No statement data for: ${gaps.join(", ")}</div>` : "");
+}
+document.getElementById("topic").addEventListener("change", checkCoverage);
+document.getElementById("confform").addEventListener("submit", (e) => {
+  const selected = [...countriesSelect.selectedOptions].map(o => o.value);
+  document.getElementById("countries_json").value = JSON.stringify(selected);
+  if (!selected.length) {
+    e.preventDefault();
+    alert("Select at least one participating country.");
+  }
+});
+syncCountries();
+</script>
+{% endblock %}

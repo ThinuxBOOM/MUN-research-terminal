@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Ask</h1>
+{% if conference %}
+  <p class="muted">{{ conference.name }} · {{ conference.committee }} · {{ conference.agenda }} ·
+    you are {{ conference.my_country }}</p>
+{% else %}
+  <p class="muted">No conference selected — answers still work, without agenda bias.</p>
+{% endif %}
+
+<form id="askform" class="card" onsubmit="return false">
+  <div class="row" style="margin-bottom:10px">
+    {% for key, label in modes %}
+      <button class="chip {{ 'active' if loop.first }}" type="button" data-mode="{{ key }}">{{ label }}</button>
+    {% endfor %}
+  </div>
+  <div class="askbar">
+    <input id="question" name="question" placeholder="What is the US stance on Haiti?" autofocus
+           value="{{ q }}" autocomplete="off">
+    <button id="send" type="submit">Ask</button>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <select id="country" style="max-width:230px">
+      <option value="">Country (optional)</option>
+      {% for iso3, info in country_options.items() %}
+        <option value="{{ iso3 }}">{{ info[0] }}</option>
+      {% endfor %}
+    </select>
+    <input id="doc_a" placeholder="From document (Connect)" style="max-width:190px">
+    <input id="doc_b" placeholder="To document (Connect)" style="max-width:190px">
+    <input type="hidden" id="conference_id" value="{{ conference.id if conference else 0 }}">
+    <span class="muted" style="font-size:13px">Enter asks · <span class="kbd">/</span> focuses the box</span>
+  </div>
+</form>
+
+<div class="grid two">
+  <div class="card pane">
+    <h3 style="margin-top:0">Evidence <span id="evms" class="pill">—</span></h3>
+    <div id="evidence" class="muted">Retrieved passages appear here before the answer.</div>
+    <div id="votes"></div>
+  </div>
+  <div class="card pane">
+    <h3 style="margin-top:0">Answer</h3>
+    <div id="answer" class="answer muted">The answer streams here, with citation checks below.</div>
+    <div id="flags"></div>
+  </div>
+</div>
+
+{% if recent %}
+<div class="card">
+  <h3 style="margin-top:0">Recent questions</h3>
+  {% for note in recent %}<div class="muted">· {{ note.text }}</div>{% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+let mode = "evidence";
+document.querySelectorAll(".chip").forEach(chip => chip.onclick = () => {
+  document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+  chip.classList.add("active");
+  mode = chip.dataset.mode;
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
+    e.preventDefault(); document.getElementById("question").focus();
+  }
+});
+
+function esc(text) {
+  return (text || "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+}
+
+function renderEvidence(items, meta, refusal) {
+  const box = document.getElementById("evidence");
+  document.getElementById("evms").textContent = (meta.retrieval_ms || 0) + " ms";
+  if (refusal) { box.innerHTML = '<div class="flag warn">' + esc(refusal) + '</div>'; return; }
+  if (!items.length) { box.innerHTML = '<span class="muted">No passages found.</span>'; return; }
+  box.innerHTML = items.map(item => `
+    <div class="evidence">
+      <div class="meta"><strong>${esc(item.id)}</strong> · ${esc(item.symbol)} · ${esc(item.label)}
+        ${item.date ? "· " + esc(item.date) : ""}
+        ${item.speaker_country ? "· " + esc(item.speaker_country) : ""}</div>
+      <p>${esc(item.text)}</p>
+    </div>`).join("");
+}
+
+function renderVotes(rows) {
+  const box = document.getElementById("votes");
+  if (!rows || !rows.length) { box.innerHTML = ""; return; }
+  box.innerHTML = "<h3>Votes (from the database)</h3><table><tr><th>Resolution</th><th>Date</th><th>Vote</th></tr>" +
+    rows.map(r => `<tr><td>${esc(r.symbol)}</td><td>${esc(r.date || "")}</td><td><strong>${esc(r.vote)}</strong></td></tr>`).join("") +
+    "</table>";
+}
+
+document.getElementById("askform").addEventListener("submit", async () => {
+  const question = document.getElementById("question").value.trim();
+  if (!question) return;
+  const button = document.getElementById("send");
+  button.disabled = true;
+  document.getElementById("answer").textContent = "";
+  document.getElementById("flags").innerHTML = "";
+  document.getElementById("evidence").textContent = "Retrieving…";
+
+  const form = new FormData();
+  form.append("question", question);
+  form.append("mode", mode);
+  form.append("conference_id", document.getElementById("conference_id").value);
+  form.append("country", document.getElementById("country").value);
+  form.append("doc_a", document.getElementById("doc_a").value);
+  form.append("doc_b", document.getElementById("doc_b").value);
+
+  try {
+    const resp = await fetch("/api/ask", { method: "POST", body: form });
+    if (!resp.ok) throw new Error("Request failed: " + resp.status);
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "", answerText = "";
+    const answerBox = document.getElementById("answer");
+    answerBox.classList.remove("muted");
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const frames = buffer.split("\n\n");
+      buffer = frames.pop();
+      for (const frame of frames) {
+        const eventLine = frame.split("\n").find(l => l.startsWith("event: "));
+        const dataLine = frame.split("\n").find(l => l.startsWith("data: "));
+        if (!eventLine || !dataLine) continue;
+        const event = eventLine.slice(7).trim();
+        let data = {};
+        try { data = JSON.parse(dataLine.slice(6)); } catch (e) { continue; }
+        if (event === "evidence") {
+          renderEvidence(data.evidence || [], data.meta || {}, data.refusal);
+          renderVotes(data.votes || []);
+        } else if (event === "token") {
+          answerText += data.text || "";
+          answerBox.textContent = answerText;
+        } else if (event === "done") {
+          answerBox.textContent = data.expanded || data.answer || answerText;
+          document.getElementById("flags").innerHTML = (data.flags || []).map(f =>
+            `<div class="flag ${f.level}">${esc(f.message)}${f.sentence ? "<br><em>" + esc(f.sentence) + "</em>" : ""}</div>`
+          ).join("");
+        } else if (event === "error") {
+          document.getElementById("flags").innerHTML = `<div class="flag error">${esc(data.message)}</div>`;
+        }
+      }
+    }
+  } catch (err) {
+    document.getElementById("flags").innerHTML = `<div class="flag error">${esc(err.message)}</div>`;
+  } finally {
+    button.disabled = false;
+  }
+});
+</script>
+{% endblock %}

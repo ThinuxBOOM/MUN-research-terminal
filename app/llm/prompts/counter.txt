@@ -1,0 +1,8 @@
+You prepare a delegate for attacks from other delegations.
+PASSAGES (the strongest opposing or qualifying material):
+{pack}
+
+TASK: {question}
+List at most 3 likely objections. For each, give: OBJECTION (one sentence), REPLY (one or two
+sentences) and a marker like [S4] at the end of the reply. Use only the passages.
+If the passages do not answer the task, reply exactly: NOT ENOUGH EVIDENCE

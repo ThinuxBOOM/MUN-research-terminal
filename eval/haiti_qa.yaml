@@ -1,0 +1,31 @@
+# Haiti evaluation set (plan 14). Replace/extend expected sources with your own prep.
+# Run: python eval/run_eval.py
+questions:
+  - id: h1
+    question: Which resolution established BINUH?
+    expect_symbols: ["S/RES/2476 (2019)"]
+    should_refuse: false
+  - id: h2
+    question: What does S/RES/2699 (2023) authorise?
+    expect_symbols: ["S/RES/2699 (2023)"]
+    should_refuse: false
+  - id: h3
+    question: Which earlier resolution does the Haiti sanctions resolution build on?
+    expect_symbols: ["S/RES/2653 (2022)"]
+    should_refuse: false
+  - id: h4
+    question: What did the Security Council decide about the Multinational Security Support mission?
+    expect_symbols: ["S/RES/2699 (2023)", "S/RES/2743 (2024)"]
+    should_refuse: false
+  - id: h5
+    question: What is Russia's stance on Haiti?
+    should_refuse: true
+  - id: h6
+    question: How did China vote on resolution 2699?
+    should_refuse: true
+  - id: u1
+    question: What is the European Union's position on Arctic shipping lanes?
+    should_refuse: true
+  - id: u2
+    question: Which resolution governs lunar mining rights?
+    should_refuse: true

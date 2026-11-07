@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Library</h1>
+<p class="muted">{{ health.docs }} documents · {{ health.chunks }} chunks ·
+  {{ health.vectors }} embedded · inbox: <span class="kbd">{{ inbox }}</span></p>
+
+<div class="grid two">
+  <div class="card">
+    <h3 style="margin-top:0">Add documents</h3>
+    <form id="upload" enctype="multipart/form-data">
+      <input type="file" name="files" multiple accept=".pdf,.txt,.md">
+      <div class="row" style="margin-top:10px">
+        <button type="submit">Ingest files</button>
+        <button type="button" class="quiet" id="inboxBtn">Ingest corpus/inbox</button>
+      </div>
+    </form>
+    <div id="uploadResult" class="muted" style="font-size:14px;margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Search</h3>
+    <form method="get" action="/library" class="row">
+      <input name="q" value="{{ q }}" placeholder="Symbol or title">
+      <button type="submit">Find</button>
+    </form>
+    <h3>Topics</h3>
+    <div class="row">
+      {% for tag in tags %}<span class="pill">{{ tag.name }} · {{ tag.n }}</span>{% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <table>
+    <tr><th>Symbol</th><th>Title</th><th>Type</th><th>Date</th><th>Chunks</th><th>Quality</th><th>Status</th></tr>
+    {% for doc in documents %}
+    <tr>
+      <td><strong>{{ doc.symbol or '—' }}</strong></td>
+      <td>{{ (doc.title or '')[:110] }}</td>
+      <td>{{ doc.doc_type }}</td>
+      <td>{{ doc.date or '—' }}</td>
+      <td>{{ doc.chunks }}</td>
+      <td>{{ '%.2f'|format(doc.parse_quality or 0) }}</td>
+      <td>
+        {% if doc.status == 'ok' %}<span class="pill ok">ok</span>
+        {% elif doc.status == 'low_quality' %}<span class="pill warn">review</span>
+        {% elif doc.status == 'stub' %}<span class="pill">stub</span>
+        {% else %}<span class="pill bad">{{ doc.status }}</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById("upload").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const data = new FormData(e.target);
+  const box = document.getElementById("uploadResult");
+  box.textContent = "Ingesting… (embedding can take a moment)";
+  const resp = await fetch("/library/upload", { method: "POST", body: data });
+  const json = await resp.json();
+  box.innerHTML = (json.results || []).map(r =>
+    `<div>${r.status === "ingested" ? "✅" : r.status === "skipped" ? "↷" : "⚠️"}
+      ${r.symbol || r.file || ""} ${r.chunks ? "· " + r.chunks + " chunks" : ""}
+      ${r.message ? "· " + r.message : ""}</div>`).join("");
+  setTimeout(() => location.reload(), 1500);
+});
+document.getElementById("inboxBtn").onclick = async () => {
+  const box = document.getElementById("uploadResult");
+  box.textContent = "Reading corpus/inbox …";
+  const resp = await fetch("/library/ingest-inbox", { method: "POST" });
+  const json = await resp.json();
+  box.textContent = (json.results || []).length + " file(s) processed.";
+  setTimeout(() => location.reload(), 1200);
+};
+</script>
+{% endblock %}

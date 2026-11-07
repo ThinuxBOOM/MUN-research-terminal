@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Votes</h1>
+<p class="muted">Vote rows are stored, never generated. Tallies below are computed from the table,
+so they are safe to quote in committee.</p>
+
+<div class="grid two">
+  <div class="card">
+    <h3 style="margin-top:0">Enter a vote by hand</h3>
+    <form method="post" action="/votes/add">
+      <label for="doc_id">Resolution</label>
+      <select id="doc_id" name="doc_id">
+        {% for doc in resolutions %}
+          <option value="{{ doc.id }}">{{ doc.symbol }} — {{ (doc.title or '')[:70] }}</option>
+        {% endfor %}
+      </select>
+      <label for="iso3">Country</label>
+      <select id="iso3" name="iso3">
+        {% for iso3, info in country_options.items() %}
+          <option value="{{ iso3 }}">{{ info[0] }}</option>
+        {% endfor %}
+      </select>
+      <label for="vote">Vote</label>
+      <select id="vote" name="vote">
+        <option value="Y">Yes (Y)</option>
+        <option value="N">No (N)</option>
+        <option value="A">Abstain (A)</option>
+        <option value="NV">Not voting (NV)</option>
+      </select>
+      <div class="row" style="margin-top:12px"><button type="submit">Save vote</button></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Import a UN Digital Library CSV</h3>
+    <p class="muted" style="font-size:14px">Columns: <span class="kbd">symbol,iso3,vote</span>
+      with a header row. Unknown symbols are reported, never invented.</p>
+    <form id="csvform" enctype="multipart/form-data">
+      <input type="file" name="file" accept=".csv,text/csv">
+      <div class="row" style="margin-top:10px"><button type="submit">Import CSV</button></div>
+    </form>
+    <div id="csvresult" class="muted" style="font-size:14px;margin-top:10px"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">Tallies</h3>
+  {% if resolutions %}
+  <table>
+    <tr><th>Resolution</th><th>Date</th><th>Yes</th><th>No</th><th>Abstain</th><th>Not voting</th></tr>
+    {% for doc in resolutions %}
+      {% set tally = tallies[doc.id] %}
+      <tr>
+        <td>{{ doc.symbol }}</td>
+        <td>{{ doc.date or '—' }}</td>
+        <td>{{ tally.in_favour }}</td>
+        <td>{{ tally.against }}</td>
+        <td>{{ tally.abstentions }}</td>
+        <td>{{ tally.non_voting }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">No resolutions in the library yet.</p>{% endif %}
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">All vote rows ({{ votes|length }})</h3>
+  {% if votes %}
+  <table>
+    <tr><th>Resolution</th><th>Date</th><th>Country</th><th>Vote</th><th>Source</th></tr>
+    {% for row in votes %}
+    <tr>
+      <td>{{ row.symbol }}</td><td>{{ row.date or '—' }}</td><td>{{ row.country }}</td>
+      <td><strong>{{ row.vote }}</strong></td><td class="muted">{{ row.source }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No votes recorded yet. Add them above, or import a CSV.</p>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById("csvform").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const box = document.getElementById("csvresult");
+  box.textContent = "Importing…";
+  const resp = await fetch("/votes/upload", { method: "POST", body: new FormData(e.target) });
+  const data = await resp.json();
+  box.innerHTML = `${data.added} rows added, ${data.skipped} skipped` +
+    (data.unknown_symbols.length ? `<div>Unknown symbols: ${data.unknown_symbols.join(", ")}</div>` : "");
+  setTimeout(() => location.reload(), 1200);
+});
+</script>
+{% endblock %}

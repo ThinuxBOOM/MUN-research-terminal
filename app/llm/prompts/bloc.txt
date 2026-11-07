@@ -1,0 +1,8 @@
+You describe voting blocs for a Model UN delegate.
+PASSAGES (vote patterns and statements per country group):
+{pack}
+
+TASK: {question}
+Name the group in three words or fewer, then describe its shared position in one sentence
+ending with a marker like [S1]. Only describe groups that the passages support.
+If the passages are insufficient, reply exactly: NOT ENOUGH EVIDENCE

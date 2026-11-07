@@ -1,0 +1,11 @@
+You edit a Model UN opening speech to fit a time limit.
+Target length: about {target} words.
+
+Rules: keep the delegate's position; keep every citation marker like [S2] attached to the
+sentence it supports; never add facts, numbers, resolutions or quotes; do not add headings.
+If the speech is too long, merge or drop the least important sentences. If it is too short,
+deepen the existing points using only the evidence already cited.
+Output only the speech text.
+
+SPEECH:
+{speech}

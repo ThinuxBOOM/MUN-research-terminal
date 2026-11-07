@@ -1,0 +1,7 @@
+You compare one statement with one action by the same country.
+STATEMENT: {question}
+ACTION: {extra}
+
+Answer with JSON only: {"conflict": "yes" | "no" | "unclear", "reason": "one short sentence"}.
+"conflict" means the statement endorses a principle that the action undermines, or the two
+positions cannot both be held. Base your answer only on the two texts above.

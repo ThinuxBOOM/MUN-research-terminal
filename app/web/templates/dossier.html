@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ conference.name }}</h1>
+<p class="muted">{{ conference.committee }} · {{ conference.agenda }} ·
+  you are {{ conference.my_country }} · speech {{ conference.speech_seconds }}s</p>
+
+<div class="row" style="margin:14px 0">
+  <button id="buildAll">Build all sections</button>
+  <a class="btn quiet" href="/export/{{ conference.id }}.md">Export Markdown</a>
+  <a class="btn quiet" href="/export/{{ conference.id }}.docx">Export DOCX</a>
+  <a class="btn quiet" href="/ask?conference_id={{ conference.id }}">Ask about this agenda</a>
+</div>
+<div id="jobbox" style="display:none" class="card">
+  <div class="row" style="justify-content:space-between"><strong id="jobmsg">Working…</strong>
+    <span class="muted" id="jobpct"></span></div>
+  <div class="progress" style="margin-top:8px"><i id="jobbar"></i></div>
+</div>
+
+<div class="dossier-layout">
+  <aside class="sidebar">
+    {% for sec in sections %}
+      <a href="/dossier/{{ conference.id }}?section={{ sec.section }}"
+         class="{{ 'active' if current and current.id == sec.id }}">
+        {{ sec.section|replace('_', ' ')|capitalize }}
+        {% if sec.status != 'ok' %}<span class="pill warn">{{ sec.status }}</span>{% endif %}
+      </a>
+    {% endfor %}
+    {% if not sections %}<span class="muted">No sections yet.</span>{% endif %}
+  </aside>
+  <section>
+    {% if current %}
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <h2 style="margin:0">{{ current.section|replace('_', ' ')|capitalize }}</h2>
+          <button class="quiet" onclick="regen('{{ current.section }}')">Regenerate</button>
+        </div>
+        <p class="muted" style="font-size:13px">Generated {{ current.generated_at }}</p>
+        <div class="md" id="md"></div>
+      </div>
+    {% else %}
+      <div class="card muted">Choose “Build all sections” to create the dossier.
+        Sections are saved as each one finishes, so nothing is lost if you stop.</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const confId = {{ conference.id }};
+const md = {{ (current.content_md if current else "")|tojson }};
+document.getElementById("md").textContent = md;
+
+function markdownToHtml(text) {
+  return (text || "").split("\n").map(line => {
+    if (line.startsWith("### ")) return "<h3>" + line.slice(4) + "</h3>";
+    if (line.startsWith("## ")) return "<h2>" + line.slice(3) + "</h2>";
+    if (line.startsWith("> ")) return "<blockquote>" + line.slice(2) + "</blockquote>";
+    if (/^\|/.test(line)) return "<div class='muted' style='font-family:ui-monospace,monospace;font-size:13px'>" + line + "</div>";
+    if (/^[-*] /.test(line)) return "• " + line.slice(2) + "<br>";
+    return line + "<br>";
+  }).join("");
+}
+document.getElementById("md").innerHTML = markdownToHtml(md);
+
+let poller = null;
+async function watch(jobId) {
+  document.getElementById("jobbox").style.display = "block";
+  poller = setInterval(async () => {
+    const resp = await fetch("/api/jobs/" + jobId);
+    const job = await resp.json();
+    document.getElementById("jobmsg").textContent = job.message || job.status;
+    const pct = Math.round((job.progress || 0) * 100);
+    document.getElementById("jobpct").textContent = pct + "%";
+    document.getElementById("jobbar").style.width = pct + "%";
+    if (job.status === "done" || job.status === "failed") {
+      clearInterval(poller);
+      setTimeout(() => location.reload(), 900);
+    }
+  }, 1500);
+}
+async function startBuild(section) {
+  const data = new FormData();
+  if (section) data.append("section", section);
+  const resp = await fetch(`/dossier/${confId}/build`, { method: "POST", body: data });
+  const json = await resp.json();
+  watch(json.job_id);
+}
+document.getElementById("buildAll").onclick = () => startBuild("");
+function regen(section) { startBuild(section); }
+</script>
+{% endblock %}

@@ -1,0 +1,9 @@
+You draft one paragraph of a Model UN opening speech.
+PASSAGES:
+{pack}
+
+TASK: Write the {extra} paragraph for the delegate of {question}.
+Rules: at most 90 words; first person ("we", "my delegation"); no invented facts, numbers,
+resolutions or quotes; end each factual sentence with a marker like [S2].
+Output the paragraph only.
+If the passages are insufficient, reply exactly: NOT ENOUGH EVIDENCE

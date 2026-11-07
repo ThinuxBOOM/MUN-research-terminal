@@ -1,0 +1,41 @@
+# MUN Research Station - local configuration.
+# Everything here can also be changed from the Settings page in the app.
+
+app:
+  host: 127.0.0.1
+  port: 8765
+  title: MUN Research Station
+
+llm:
+  # Ollama's native API (http://localhost:11434/api/chat). The /v1 OpenAI-compatible
+  # endpoint is also installed, but the native API is the only one that applies
+  # num_ctx per request, so it is the default here.
+  base_url: http://localhost:11434
+  model: qwen3-mun
+  embed_model: qwen3-embedding:0.6b
+  context_length: 8192
+  temperature_evidence: 0.2
+  temperature_draft: 0.5
+  allow_thinking: false
+  max_answer_tokens: 700
+  request_timeout: 180
+
+retrieval:
+  fts_top_k: 30
+  vec_top_k: 30
+  rerank_top_k: 8
+  # Calibrated on this library: in-library questions score about 0.42-0.68 while
+  # off-topic questions land at 0.27-0.36, so 0.38 keeps real hits and refuses noise.
+  min_rerank_score: 0.38
+  pack_token_budget: 3500
+  graph_hops: 1
+  graph_seed_chunks: 3
+  graph_per_seed: 4
+
+ingest:
+  chunk_target_tokens: 300
+  chunk_max_tokens: 500
+  min_topic_hits: 2
+
+ui:
+  theme: dark

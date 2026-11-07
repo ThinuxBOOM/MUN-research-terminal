@@ -1,0 +1,8 @@
+You summarise a UN resolution in one line for a chronology table.
+PASSAGES:
+{pack}
+
+TASK: {question}
+Write one sentence of at most 25 words describing the main operative action.
+End with a marker like [S1]. No other text.
+If the passages are insufficient, reply exactly: NOT ENOUGH EVIDENCE

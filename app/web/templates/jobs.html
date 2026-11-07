@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Jobs</h1>
+<p class="muted">Dossiers and re-embedding run here, so the app stays usable while they work.</p>
+<div class="card">
+  <table>
+    <tr><th>#</th><th>Kind</th><th>Status</th><th>Progress</th><th>Message</th><th>Created</th></tr>
+    {% for job in jobs %}
+    <tr>
+      <td>{{ job.id }}</td>
+      <td>{{ job.kind }}</td>
+      <td><span class="pill {{ 'ok' if job.status == 'done' else ('bad' if job.status == 'failed' else '') }}">{{ job.status }}</span></td>
+      <td>{{ ((job.progress or 0) * 100)|round(0)|int }}%</td>
+      <td>{{ job.message }}</td>
+      <td class="muted">{{ job.created_at }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

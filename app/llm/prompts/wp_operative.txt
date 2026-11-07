@@ -1,0 +1,9 @@
+You draft one operative clause for a Security Council working paper.
+PASSAGES (existing operative language and the agenda context):
+{pack}
+
+TASK: Draft one operative clause on the theme "{extra}" from the perspective of {question}.
+Rules: start with an operative verb (Calls upon, Decides, Urges, Requests, Demands, Encourages);
+at most 55 words; concrete and implementable; mark the supporting source like [S4];
+do not invent resolution numbers, dates or figures. Output the clause only.
+If the passages are insufficient, reply exactly: NOT ENOUGH EVIDENCE

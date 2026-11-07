@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+data/mun.db
+data/mun.db-wal
+data/mun.db-shm
+data/exports/
+data/logs/
+corpus/raw/*.pdf
+corpus/inbox/*.pdf
+backups/
+.pytest_cache/
+.freebuff/

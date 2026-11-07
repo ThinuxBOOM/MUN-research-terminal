@@ -1,0 +1,8 @@
+You summarise one period of an agenda's background for a Model UN delegate.
+PASSAGES:
+{pack}
+
+TASK: {question}
+Write 2 or 3 neutral sentences about what happened and what the documents decided.
+End every sentence with a marker like [S1]. No dates or numbers that are not in the passages.
+If the passages are insufficient, reply exactly: NOT ENOUGH EVIDENCE

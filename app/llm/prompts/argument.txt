@@ -1,0 +1,8 @@
+You help a delegate from {extra} argue a position.
+PASSAGES:
+{pack}
+
+TASK: {question}
+Write exactly 3 talking points. Each one has: CLAIM (one sentence), EVIDENCE (a marker like
+[S2]), SO WHAT (one short sentence on why it matters in committee). Use only the passages.
+If the passages do not answer the task, reply exactly: NOT ENOUGH EVIDENCE

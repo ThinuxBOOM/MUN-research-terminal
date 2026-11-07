@@ -1,0 +1,7 @@
+You explain why one legal provision matters for an agenda item.
+PASSAGES:
+{pack}
+
+TASK: {question}
+In one sentence, say what the provision allows, requires or forbids; end with its marker [S1].
+If the passages are insufficient, reply exactly: NOT ENOUGH EVIDENCE

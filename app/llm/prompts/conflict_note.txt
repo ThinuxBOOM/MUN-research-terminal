@@ -1,0 +1,8 @@
+You note possible conflicts between a draft clause and existing resolutions.
+PASSAGES:
+{pack}
+
+CLAUSE: {question}
+In at most two sentences, say whether the clause duplicates, contradicts or is consistent with
+the passages, ending with a marker like [S2]. If nothing relevant is present, say
+"NOT ENOUGH EVIDENCE".

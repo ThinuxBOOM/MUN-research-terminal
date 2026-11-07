@@ -1,0 +1,8 @@
+You summarise a country's position from its own statements and votes.
+PASSAGES:
+{pack}
+
+TASK: What is {extra}? Write at most 5 sentences, plainly and neutrally, in chronological
+order, and say whether the position changed. End every sentence with a marker like [S3].
+Do not attribute a vote that is not in the passages.
+If the passages do not answer the task, reply exactly: NOT ENOUGH EVIDENCE

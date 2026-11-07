@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme or 'dark' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page_title or 'MUN Research Station' }}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/htmx.min.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">MUN <span>Research Station</span></div>
+  <nav class="main">
+    <a href="/" class="{{ 'active' if active == 'home' }}">Home</a>
+    <a href="/ask" class="{{ 'active' if active == 'ask' }}">Ask</a>
+    <a href="/library" class="{{ 'active' if active == 'library' }}">Library</a>
+    <a href="/connections" class="{{ 'active' if active == 'connections' }}">Connections</a>
+    <a href="/votes" class="{{ 'active' if active == 'votes' }}">Votes</a>
+    <a href="/jobs" class="{{ 'active' if active == 'jobs' }}">Jobs</a>
+    <a href="/settings" class="{{ 'active' if active == 'settings' }}">Settings</a>
+  </nav>
+  <div class="statusbar">
+    {% if health %}
+      <span><span class="dot {{ 'ok' if health.ok else 'bad' }}"></span>
+        LLM {{ 'ready' if health.ok else 'offline' }}</span>
+      <span class="pill" title="{{ health.endpoint }}">{{ health.docs }} docs · {{ health.chunks }} chunks</span>
+    {% endif %}
+  </div>
+</header>
+<main>
+  {% block content %}{% endblock %}
+</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>
