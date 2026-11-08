@@ -68,6 +68,13 @@ CREATE TABLE IF NOT EXISTS votes (
   source TEXT    -- undl_csv|press_release|manual
 );
 
+CREATE TABLE IF NOT EXISTS vote_tallies (
+  doc_id INTEGER PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE,
+  symbol TEXT, year INTEGER, yes INTEGER, no INTEGER, abstain INTEGER,
+  abstainers TEXT, no_voters TEXT, non_voters TEXT,
+  source_url TEXT, status TEXT, message TEXT   -- OK | NEEDS_NAMES
+);
+
 CREATE TABLE IF NOT EXISTS topics (
   id INTEGER PRIMARY KEY,
   name TEXT UNIQUE,

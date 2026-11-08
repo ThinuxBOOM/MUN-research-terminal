@@ -5,7 +5,7 @@ import re
 
 from ..chunker import make_chunk, split_long
 
-ART_RE = re.compile(r"^Article\s+(\d{1,3}[A-Za-z]?)\b[.:]?\s*(.*)$", re.I)
+ART_RE = re.compile(r"^Article\s+([IVXLC]+|\d{1,3}[A-Za-z]?)\b[.:]?\s*(.*)$", re.I)
 CHAPTER_RE = re.compile(r"^Chapter\s+([IVXLC]+)\b", re.I)
 
 

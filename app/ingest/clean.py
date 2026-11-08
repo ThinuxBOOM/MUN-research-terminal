@@ -110,8 +110,35 @@ def parse_quality(metrics: dict) -> float:
     return 0.1
 
 
+def ocr_available() -> bool:
+    """True when optional OCR tooling is installed (the plan keeps OCR optional)."""
+    import shutil
+
+    return bool(shutil.which("ocrmypdf") and shutil.which("tesseract"))
+
+
+def ocr_pdf(path: str | Path) -> tuple[list[str], dict]:
+    """Add a text layer with ocrmypdf, then extract it. Returns ([], {}) if it fails."""
+    import subprocess
+    import tempfile
+
+    if not ocr_available():
+        return [], {}
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "ocr.pdf"
+        try:
+            subprocess.run(["ocrmypdf", "--skip-text", "--output-type", "pdf",
+                            str(path), str(out)], check=True, capture_output=True, timeout=600)
+        except Exception:  # noqa: BLE001
+            return [], {}
+        pages = extract_pages(out)
+        return clean_pages(pages)
+
+
 def extract_text_file(path: str | Path) -> tuple[list[str], dict]:
     text = Path(path).read_text(encoding="utf-8", errors="replace")
+    # "Article 51" and "Article IX" headings start a new paragraph even without a blank line.
+    text = re.sub(r"\n(?=Article\s+(?:[IVXLC]+|\d{1,3})\b)", "\n\n", text)
     paragraphs = [normalize_ws(p) for p in re.split(r"\n\s*\n", text) if p.strip()]
     chars = sum(len(p) for p in paragraphs)
     return paragraphs, {"pages": 1, "chars": chars, "chars_per_page": chars}

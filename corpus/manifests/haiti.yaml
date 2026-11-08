@@ -1,19 +1,25 @@
-# Haiti starting pack. Verified downloading on 2026-11-07 via documents.un.org.
-# Complete the list with the UN Digital Library (https://digitallibrary.un.org):
-# search "Haiti" filtered to Security Council resolutions, S/PV records and SC/ press releases.
+# Haiti pack. Symbols verified against the documents themselves on 2026-11-08
+# (titles and votes read from the PDFs, not from memory).
+# Source for each document: https://documents.un.org/api/symbol/access?s=<SYMBOL>&l=en&t=pdf
 name: Haiti
 documents:
-  - symbol: S/RES/2476(2019)    # established BINUH
+  - symbol: S/RES/2476(2019)    # established BINUH (verified title in library)
   - symbol: S/RES/2645(2022)    # renewed BINUH
   - symbol: S/RES/2653(2022)    # Haiti sanctions regime
-  - symbol: S/RES/2699(2023)    # Multinational Security Support mission
-  - symbol: S/RES/2743(2024)    # MSS renewal / transition
-  # Meeting records discovered with scripts/discover.py and verified to mention Haiti:
+  - symbol: S/RES/2692(2023)    # BINUH renewal to 15 Jul 2024
+  - symbol: S/RES/2699(2023)    # Multinational Security Support mission authorised
+  - symbol: S/RES/2700(2023)    # sanctions regime renewal (verify on ingest)
+  - symbol: S/RES/2743(2024)    # BINUH renewal until 15 Jul 2025 (NOT the MSS renewal)
+  - symbol: S/RES/2751(2024)    # MSS mandate renewed
+  - symbol: S/RES/2793(2025)    # Gang Suppression Force + UNSOH
+  # Adoption meeting records (S/PV) — the President's statement carries the vote.
+  - symbol: S/PV.9684           # adoption of S/RES/2743 (2024)
+  - symbol: S/PV.10009          # adoption of S/RES/2793 (2025)
+  # Haiti meetings already discovered and verified to mention Haiti:
   - symbol: S/PV.10198
   - symbol: S/PV.10213
   - symbol: S/PV.10216
   - symbol: S/PV.10231
   - symbol: S/PV.10241
-  # Still to fetch by hand (tick the box in the Library page when added):
-  # - SC/ press releases on Haiti votes (press.un.org blocks automated download)
-  # - Secretary-General reports on BINUH (S/2023/..., S/2024/...)
+  # Still to fetch by hand — press releases on votes and SG reports on BINUH.
+  # See corpus/MANUAL_DOWNLOADS.md for the current checklist.

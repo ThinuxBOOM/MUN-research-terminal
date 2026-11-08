@@ -280,6 +280,7 @@ def section_counter(conn, conf: dict) -> tuple[str, list, str]:
 def section_speech(conn, conf: dict) -> tuple[str, list, str]:
     params = ["hook", "background", "position", "proposed solution", "call to action"]
     evidence: list = []
+    sources: list[dict] = []
     paragraphs = []
     for part in params:
         result = service.retrieve(conn, f"{conf['agenda']} {part}", conf)
@@ -292,6 +293,9 @@ def section_speech(conn, conf: dict) -> tuple[str, list, str]:
                      temperature=float(config()["llm"]["temperature_draft"]))
         paragraphs.append(text.strip())
         evidence.extend(item["chunk_id"] for item in result["pack"])
+        sources.extend({"symbol": item["symbol"], "label": item["label"],
+                        "date": item.get("date"), "chunk_id": item["chunk_id"]}
+                       for item in result["pack"])
     speech = "\n\n".join(paragraphs)
     words = len(speech.split())
     target = int(conf.get("speech_seconds") or 90) * 130 / 60
@@ -308,11 +312,25 @@ def section_speech(conn, conf: dict) -> tuple[str, list, str]:
             break
         speech = fitted.strip()
         words = len(speech.split())
+    # Deterministic fallback: the model sometimes returns an over-long draft unchanged.
+    if words > target * 1.1:
+        pieces = [s.strip() for s in re.split(r"(?<=[.!?])\s+", speech) if s.strip()]
+        kept: list[str] = []
+        count = 0
+        for sentence in pieces:
+            length = len(sentence.split())
+            if count + length > target * 1.05:
+                break
+            kept.append(sentence)
+            count += length
+        if kept:
+            speech = " ".join(kept)
+            words = len(speech.split())
     md = [f"## Opening speech — {countries.name_of(conf['my_country'])}\n",
           f"_Target: {conf.get('speech_seconds') or 90} seconds "
           f"(about {int(target)} words). Current length: {words} words._\n", speech, "\n### Sources\n",
-          _evidence_links([{"symbol": "see evidence panel", "label": "", "date": "",
-                            "chunk_id": cid} for cid in dict.fromkeys(evidence)])]
+          _evidence_links(list({(s["symbol"], s["label"], s["chunk_id"]): s
+                                for s in sources}.values()))]
     return "\n".join(md), evidence, "ok"
 
 

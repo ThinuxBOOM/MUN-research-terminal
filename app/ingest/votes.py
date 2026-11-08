@@ -113,3 +113,155 @@ def parse_paragraph(text: str) -> list[dict]:
     """Parse per-country vote notes like 'France (yes), Russia (abstaining)'."""
     return [{"name": m.group("name").strip(), "vote": normalize_vote(m.group("vote"))}
             for m in BY_NAME.finditer(text or "")]
+
+
+# ---------------------------------------------------- tally CSV with expansion
+# Source of the membership lists: https://www.un.org/securitycouncil/content/countries-elected-members
+
+def ensure_tallies(conn) -> None:
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS vote_tallies("
+        "doc_id INTEGER PRIMARY KEY, symbol TEXT, year INTEGER, yes INTEGER, no INTEGER, "
+        "abstain INTEGER, abstainers TEXT, no_voters TEXT, non_voters TEXT, "
+        "source_url TEXT, status TEXT, message TEXT)")
+    conn.commit()
+
+
+def load_members(path: str | Path) -> dict[int, list[str]]:
+    """year -> ISO3 list, from corpus/votes/council_members.csv (year,iso3,source_url)."""
+    members: dict[int, list[str]] = {}
+    with Path(path).open(newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            if not row.get("year"):
+                continue
+            members.setdefault(int(row["year"]), []).append(row["iso3"].strip().upper())
+    return members
+
+
+def _names(value: str) -> list[str]:
+    return [part.strip() for part in re.split(r"[;|]", value or "") if part.strip()]
+
+
+def _iso3_list(names: list[str]) -> tuple[list[str], list[str]]:
+    from . import countries
+
+    mapped, unknown = [], []
+    for name in names:
+        iso3 = countries.lookup(name)
+        (mapped if iso3 else unknown).append(iso3 or name)
+    return mapped, unknown
+
+
+def import_tallies(conn, path: str | Path, members_path: str | Path) -> dict:
+    """Import one row per resolution, expanding the tally into per-country rows.
+
+    Rows whose abstainers are missing but whose tally says there were abstentions are
+    stored as NEEDS_NAMES and never turned into guessed votes.
+    """
+    from . import countries
+
+    ensure_tallies(conn)
+    members = load_members(members_path)
+    summary = {"imported": [], "needs_names": [], "rejected": [],
+               "unknown_symbols": [], "unknown_countries": []}
+    with Path(path).open(newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            symbol = (row.get("symbol") or "").strip()
+            if not symbol:
+                continue
+            doc = conn.execute("SELECT id, symbol, date FROM documents WHERE symbol = ?",
+                               (symbol,)).fetchone()
+            if not doc:
+                summary["unknown_symbols"].append(symbol)
+                continue
+            year = int((row.get("date") or doc["date"] or "0000")[:4] or 0)
+            yes_no_abs = [int((row.get(key) or "0").strip() or 0)
+                          for key in ("tally_yes", "tally_no", "tally_abstain")]
+            abstainers, unknown_a = _iso3_list(_names(row.get("abstainers")))
+            no_voters, unknown_n = _iso3_list(_names(row.get("no_voters")))
+            non_voters, unknown_nv = _iso3_list(_names(row.get("non_voters")))
+            summary["unknown_countries"].extend(unknown_a + unknown_n + unknown_nv)
+            source_url = (row.get("source_url") or "").strip()
+            tally_core = {"yes": yes_no_abs[0], "no": yes_no_abs[1], "abstain": yes_no_abs[2]}
+
+            if tally_core["abstain"] and not abstainers:
+                message = (f"Tally says {tally_core['abstain']} abstention(s) but no abstainer names "
+                           f"were given; add names to mark this row complete.")
+                _store_tally(conn, doc["id"], symbol, year, tally_core, abstainers, no_voters,
+                             non_voters, source_url, "NEEDS_NAMES", message)
+                conn.execute("DELETE FROM votes WHERE doc_id = ?", (doc["id"],))
+                conn.commit()
+                summary["needs_names"].append(symbol)
+                continue
+            if len(abstainers) != tally_core["abstain"] or len(no_voters) != tally_core["no"]:
+                message = (f"Rejected: stated tally is {tally_core['yes']}-{tally_core['no']}-"
+                           f"{tally_core['abstain']} but the name lists give "
+                           f"{len(no_voters)} against and {len(abstainers)} abstaining.")
+                summary["rejected"].append({"symbol": symbol, "message": message})
+                continue
+            roster = members.get(year, [])
+            if not roster:
+                summary["rejected"].append({"symbol": symbol,
+                                            "message": f"No membership list for {year}."})
+                continue
+            derived = _derive(roster, abstainers, no_voters, non_voters)
+            counts = {key: sum(1 for value in derived.values() if value == key)
+                      for key in ("Y", "N", "A", "NV")}
+            if (counts["Y"], counts["N"], counts["A"]) != tuple(yes_no_abs):
+                summary["rejected"].append({
+                    "symbol": symbol,
+                    "message": (f"Rejected: derived vote is {counts['Y']}-{counts['N']}-"
+                                f"{counts['A']} but the document states "
+                                f"{yes_no_abs[0]}-{yes_no_abs[1]}-{yes_no_abs[2]}."),
+                })
+                continue
+            conn.execute("DELETE FROM votes WHERE doc_id = ?", (doc["id"],))
+            for iso3, value in derived.items():
+                conn.execute("INSERT INTO votes(doc_id, iso3, vote, source) VALUES (?,?,?,?)",
+                             (doc["id"], iso3, value, source_url or "tally_csv"))
+            _store_tally(conn, doc["id"], symbol, year, tally_core, abstainers, no_voters,
+                         non_voters, source_url, "OK", "")
+            conn.commit()
+            summary["imported"].append(symbol)
+    summary["unknown_countries"] = sorted(set(summary["unknown_countries"]))
+    return summary
+
+
+def _derive(roster: list[str], abstainers: list[str], no_voters: list[str],
+            non_voters: list[str]) -> dict[str, str]:
+    derived = {}
+    for iso3 in roster:
+        if iso3 in abstainers:
+            derived[iso3] = "A"
+        elif iso3 in no_voters:
+            derived[iso3] = "N"
+        elif iso3 in non_voters:
+            derived[iso3] = "NV"
+        else:
+            derived[iso3] = "Y"
+    return derived
+
+
+def _store_tally(conn, doc_id: int, symbol: str, year: int, tally_core: dict,
+                 abstainers: list[str], no_voters: list[str], non_voters: list[str],
+                 source_url: str, status: str, message: str) -> None:
+    conn.execute(
+        "INSERT INTO vote_tallies(doc_id, symbol, year, yes, no, abstain, abstainers, "
+        "no_voters, non_voters, source_url, status, message) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) "
+        "ON CONFLICT(doc_id) DO UPDATE SET symbol=excluded.symbol, year=excluded.year, "
+        "yes=excluded.yes, no=excluded.no, abstain=excluded.abstain, "
+        "abstainers=excluded.abstainers, no_voters=excluded.no_voters, "
+        "non_voters=excluded.non_voters, source_url=excluded.source_url, "
+        "status=excluded.status, message=excluded.message",
+        (doc_id, symbol, year, tally_core["yes"], tally_core["no"], tally_core["abstain"],
+         ";".join(abstainers), ";".join(no_voters), ";".join(non_voters),
+         source_url, status, message))
+    conn.commit()
+
+
+def needs_names(conn) -> list[dict]:
+    ensure_tallies(conn)
+    rows = conn.execute(
+        "SELECT t.*, d.date FROM vote_tallies t JOIN documents d ON d.id = t.doc_id "
+        "WHERE t.status = 'NEEDS_NAMES' ORDER BY d.date DESC").fetchall()
+    return [dict(row) for row in rows]

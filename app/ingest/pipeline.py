@@ -53,6 +53,9 @@ def symbol_from_filename(name: str) -> str | None:
     pv_match = re.match(r"^([SAE])/PV\.(\d+)$", stem, re.I)
     if pv_match:
         return f"{pv_match.group(1).upper()}/PV.{pv_match.group(2)}"
+    report = re.match(r"^([SAE])/(\d{4})/(\d{1,4})$", stem, re.I)
+    if report:
+        return f"{report.group(1).upper()}/{report.group(2)}/{report.group(3)}"
     match = re.match(r"^([SAE])/(RES|PV|CONF[\d.]*)/(.+)$", stem, re.I)
     if not match:
         return None
@@ -131,19 +134,42 @@ def ingest_file(conn, path: str | Path, doc_type: str | None = None,
         return {"status": "skipped", "message": "Already in the library (same file hash).",
                 "doc_id": existing["id"], "symbol": existing["symbol"]}
 
+    explicit_symbol = None
     if path.suffix.lower() == ".pdf":
         pages = clean.extract_pages(path)
         paragraphs, metrics = clean.clean_pages(pages)
+        if not paragraphs and clean.ocr_available():
+            paragraphs, metrics = clean.ocr_pdf(path)
     else:
         paragraphs, metrics = clean.extract_text_file(path)
+        # A pasted .txt/.md may declare its symbol on the first line:
+        #   SYMBOL: A/RES/260 (III)
+        if paragraphs:
+            lines = paragraphs[0].splitlines()
+            symbol_line = next((ln for ln in lines
+                                if ln.strip().upper().startswith("SYMBOL:")), None)
+            if symbol_line:
+                explicit_symbol = re.sub(r"(\d+[A-Za-z]?)\s*\(([^)]+)\)", r"\1 (\2)",
+                                         symbol_line.split(":", 1)[1].strip())
+                remaining = [ln for ln in lines if not ln.strip().upper().startswith(
+                    ("SYMBOL:", "SOURCE:"))]
+                paragraphs = (["\n".join(remaining).strip()] if any(
+                    ln.strip() for ln in remaining) else []) + paragraphs[1:]
     if not paragraphs:
+        hint = (" Install ocrmypdf and Tesseract for OCR, or paste the text into a .txt "
+                "file starting with 'SYMBOL: <symbol>'.")
         return {"status": "error",
-                "message": "No text found. This looks like a scanned PDF; OCR is not enabled."}
+                "message": "No text found. This looks like a scanned PDF; OCR is not enabled." + hint}
 
     quality = clean.parse_quality(metrics)
-    symbol = symbol_from_filename(path.name) or symbol_from_text(paragraphs)
+    symbol = explicit_symbol or symbol_from_filename(path.name) or symbol_from_text(paragraphs)
     merged = "\n".join(paragraphs[:60])
     kind = doc_type or detect_type(symbol, path.name, merged)
+    # A pasted General Assembly resolution that is really a convention (article headings)
+    # should be parsed as a treaty, not as preambular/operative paragraphs.
+    if kind == "resolution" and re.search(r"(?m)^Article\s+[IVXLC]+\b",
+                                        "\n".join(paragraphs[:40])):
+        kind = "treaty"
     date = find_date(paragraphs)
     meta = {
         "symbol": symbol,
@@ -156,8 +182,14 @@ def ingest_file(conn, path: str | Path, doc_type: str | None = None,
     chunks = PARSERS.get(kind, report.parse)(paragraphs, meta)
 
     if symbol:
-        clash = conn.execute("SELECT id FROM documents WHERE symbol = ?", (symbol,)).fetchone()
-        if clash:
+        clash = conn.execute("SELECT id, status FROM documents WHERE symbol = ?", (symbol,)).fetchone()
+        if clash and clash["status"] == "stub":
+            # A real download replaces the placeholder created by link extraction.
+            conn.execute("DELETE FROM edges WHERE src_id = ? OR dst_id = ?",
+                         (clash["id"], clash["id"]))
+            conn.execute("DELETE FROM documents WHERE id = ?", (clash["id"],))
+            conn.commit()
+        elif clash:
             return {"status": "skipped", "message": f"Symbol {symbol} is already in the library.",
                     "doc_id": clash["id"], "symbol": symbol}
 

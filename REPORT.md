@@ -195,3 +195,182 @@ Evaluation: `python eval/run_eval.py`. Full re-embed: `python scripts/reembed.py
 
 The working demo dossier (UNSC, "The situation in Haiti", Colombia) is conference 1 at
 `/dossier/1`.
+
+---
+
+# Second pass (8 November 2026)
+
+## Task 1 — manifest and labels (done)
+- `corpus/manifests/haiti.yaml` now lists 2692, 2700, 2751, 2793 with corrected labels.
+  S/RES/2743 (2024) is labelled the BINUH renewal; S/RES/2751 (2024) is the MSS renewal.
+- Fetched and ingested: S/RES/2692 (2023) 41 chunks, S/RES/2700 (2023) 41, S/RES/2751 (2024)
+  11, S/RES/2793 (2025) 38, plus S/PV.9684, S/PV.10009, S/PV.9735, S/PV.9377, S/PV.9444,
+  S/PV.9095, S/PV.9159, S/PV.8559, S/PV.9430. All resolutions report parse quality 0.95.
+- Fixed a real ingestion bug: real PDFs were being skipped because link extraction had already
+  created a stub with the same symbol. A downloaded document now replaces its stub.
+- `corpus/MANUAL_DOWNLOADS.md` lists the press releases (press.un.org blocks automated
+  download), SG reports, and the scanned Genocide Convention.
+- Verified from the documents: 2743 unanimous 15-0-0 (S/PV.9684); 2793 12-0-3 (S/PV.10009,
+  abstaining China, Pakistan, Russian Federation); 2751 unanimous (S/PV.9735); 2692 unanimous
+  (S/PV.9377); 2700 unanimous (S/PV.9444); 2699 13-0-2 (S/PV.9430, China and Russia);
+  2476 13-0-2 (S/PV.8559, China and Dominican Republic).
+
+## Task 2 — real vote data (done for the nine Haiti resolutions)
+- `corpus/votes/council_members.csv`: 2019-2026 membership, sourced from
+  https://www.un.org/securitycouncil/content/countries-elected-members (page read this session).
+- `corpus/votes/haiti_votes.csv`: nine rows, every tally read from the adoption S/PV record.
+- `app/ingest/votes.py`: `import_tallies` expands a tally into per-country rows, rejects any
+  row whose derived Y/N/A counts disagree with the stated tally, stores the source URL on
+  every vote row, and stores rows without abstainer names as NEEDS_NAMES with no votes written.
+- Imported: 135 vote rows across nine resolutions; every row validated; zero rejected; zero
+  unresolved names. `/votes` has an "Import Haiti votes" button and a NEEDS_NAMES to-do list.
+- Stance prepare now returns nine vote rows for the United States and nine for China.
+- Blocs were not re-run after the import.
+
+## Task 3 — coverage (partial)
+- `scripts/coverage.py` writes `corpus/COVERAGE.md` (2022-2026, 2026 Council plus Colombia).
+- No new `discover.py` run was made, so year coverage is still five 2026 S/PV records.
+- The zero list includes China and Russia even though they spoke in S/PV.10009: 237 chunks
+  have a speaker name but no speaker_country. This is a PV speaker-mapping bug, not a corpus
+  gap, and should be fixed before trusting the coverage table.
+
+## Task 4 — validator year bug (done)
+- `validate_resolution_refs` now rejects S/RES/2699 (2024) when only 2699 (2023) exists,
+  rejects unknown numbers, and accepts a bare "resolution 2699" only when the number is
+  unique. Four new tests cover representable cases; 29 tests pass in total.
+
+## Task 5 — evaluation set (drafts only, targets not met)
+- `eval/haiti_qa.yaml`: 32 questions across exact lookups, votes, stance, connections,
+  argument/counterargument and ten unanswerable, all marked `verified: false`.
+- `eval/run_eval.py` reports recall, refusal correctness, vote-table accuracy, latency, and
+  (with `--answers N`) marker validity and hallucinated resolution numbers; it exits 1 if a
+  measured target fails.
+- Latest run: recall 16/21 = 76% (target 85%), refusals 8/10 = 80% (target 90%), vote table
+  6/6 = 100%, median retrieval 83 ms. **The runner exits 1.** Recall failures are vote and
+  argue/counter questions whose evidence panel is not the mechanism being tested; the two
+  refusal misses are the Moon Treaty and Haiti space-programme drafts. These are draft
+  questions, not a passing benchmark.
+
+## Task 6 — pasted text and OCR (implemented, not yet exercised)
+- `.txt`/`.md` ingestion reads a first line `SYMBOL: A/RES/260 (III)` and uses it as the
+  symbol; discussed in MANUAL_DOWNLOADS.md.
+- `clean.ocr_available()` / `clean.ocr_pdf()` run ocrmypdf when it and Tesseract are present;
+  otherwise the scanned-PDF error now explains both the OCR install and the paste route.
+- No OCR binary is installed here and the paste route was not run end to end.
+
+## Task 7 — verification (not done)
+- Dossier was not regenerated after the data changes.
+- `app/dossier/checks.py`, DOSSIER_REVIEW.md, a from-scratch install test and screenshots were
+  not produced. No headless browser check was attempted.
+
+## Test status
+`python -m pytest -q` -> **29 passed**. `python eval/run_eval.py` -> exit 1 (targets above).
+
+## Third pass — downloads completed (8 November 2026)
+
+- **Secretary-General reports on BINUH** downloaded from the UN symbol service and ingested:
+  S/2024/310 (75 chunks), S/2024/508 (69), S/2025/641 (66), quality 0.95 each.
+- **SC/16185** press release: press.un.org blocks direct automated requests (HTTP 406), so the
+  published text was read from https://press.un.org/en/2025/sc16185.doc.htm, saved as
+  `corpus/inbox/SC_16185.txt` with `SYMBOL: SC/16185`, and ingested as a press release
+  (9 chunks). It independently confirms 12-0-3 with China, Pakistan and Russia abstaining.
+- **Genocide Convention**: the UN page returns 403 and the A/RES/260 (III) PDF is a scan, so
+  the text was taken from OHCHR, saved as `corpus/inbox/A_RES_260_III.txt` with
+  `SYMBOL: A/RES/260 (III)`, and ingested as a treaty: 9 chunks, Art. I-X, quality 0.95.
+- Fixed three issues found by doing this: multi-line `SYMBOL:` headers were not read; article
+  headings without a blank line were not split; Roman-numeral article headings were rejected
+  by the treaty parser; and `S/2024/310` filenames produced no symbol. A pasted GA resolution
+  with article headings now parses as a treaty.
+- **Tests: 29 passed.** Library now 73 documents (SG reports and press release added).
+- Still open: the S/PV speaker-to-country mapping (China and Russia show zero statements),
+  the evaluation targets (recall 76%, refusals 80%), dossier regeneration, `dossier/checks.py`,
+  DOSSIER_REVIEW.md, clean-install test and screenshots.
+
+## Fourth pass — speaker mapping fixed (8 November 2026)
+
+- Root cause: the S/PV speaker pattern rejected any marker with a parenthetical before the
+  colon, such as "Mr. Geng Shuang (China) (spoke in Chinese):". China's intervention was
+  therefore merged into the previous speaker's chunk and attributed to the United States.
+- `app/ingest/parsers/pv.py` now allows one such parenthetical. A parser smoke test asserts
+  that China is recognised.
+- All 14 S/PV records were re-ingested (chunks grew, e.g. S/PV.10198 102, S/PV.9430 47).
+  Statement chunks: China 38, United States 35, Russia 31, France 22, United Kingdom 14
+  (China, Russia and France were previously zero). Unresolved speaker names fell from 237 to
+  165.
+- `corpus/COVERAGE.md` regenerated: **no country is at zero** across 2022-2026. China 36,
+  United States 34, Russia 27, Panama 21, France 19, Colombia 17.
+- Stance now works for the US, China, Russia and France: each returns nine vote rows plus
+  8-9 statement chunks with no refusal.
+- Evaluation re-run: **recall 21/21 = 100%**, vote-table accuracy **6/6 = 100%**, median
+  retrieval 70 ms, tests **29 passed**. Refusal correctness is **6/10 = 60%**, still below the
+  90% target, so the runner still exits 1. The four misses are draft questions (u05 2018 vote,
+  u06 EU coffee tariff, u07 Moon Treaty, u10 Haiti space programme) where ordinary Haiti
+  passages score above the evidence gate. They are drafts marked `verified: false` and should
+  be replaced with your own questions rather than tuned around.
+
+## Fifth pass — dossier rebuilt and checked (8 November 2026)
+
+- The demo dossier (conference 1) was rebuilt after the vote and corpus changes. All ten
+  sections report `ok`; **blocs now has real content** because votes are stored (it was
+  `empty` before).
+- New `app/dossier/checks.py` checks every section: missing/failed sections, resolution
+  references with wrong year or absent from the library, speech citing at least three distinct
+  sources, and each POI card having at least two evidence items. It also reports uncited
+  factual sentences.
+- First run failed on one real defect: the speech section listed "see evidence panel" instead
+  of resolution symbols, so it cited zero sources. `section_speech` now lists the actual
+  symbols from its evidence packs; speech and POIs were rebuilt.
+- Final check result: **PASS** (0 hard failures). Warnings remain: counter 13/14, position
+  6/6 and speech 11/23 factual sentences carry no inline citation marker; these are reported,
+  not hidden.
+- `DOSSIER_REVIEW.md` generated for conference 1: per section, claims with their source marker
+  or evidence quote, plus uncited sentences flagged for hand review.
+- `python -m pytest -q` -> **29 passed**.
+- Still not done: clean-install test in a fresh environment, screenshots (Playwright is not
+  installed), and the refusal target in the evaluation set (6/10).
+
+## Wrap-up (8 November 2026)
+
+- Speech fixed: the model returned an over-long draft unchanged, so a deterministic trim pass
+  now drops whole sentences until the speech is within 5% of target. Rebuilt speech is
+  **210 words against a 195-word target (+7.7%)** and cites six resolutions.
+- `app/dossier/checks.py` now also fails a speech outside +/-10% of its time target. Final
+  result for conference 1: **PASS**, with warnings for uncited sentences in counter (13/14),
+  position (6/6) and speech (11/24).
+- `DOSSIER_REVIEW.md` regenerated; blocs is non-empty; POIs rebuilt with their evidence.
+- `python -m pytest -q` -> **29 passed**.
+- Open items: evaluation refusal target still 6/10 (runner exits 1); clean-install test in a
+  fresh virtual environment not run; no screenshots (Playwright not installed); new /votes
+  import button not exercised in a browser; work is uncommitted.
+
+## Final pass (8 November 2026, second session)
+
+- **Clean install fixed and verified.** `requirements.txt` pinned `pymupdf==1.28.6`, a version
+  that does not exist on PyPI, so a fresh install failed. It now pins the installed `2.1`.
+  In a new `.venv-clean`: `pip install -r requirements.txt` succeeded, `pip check` reported
+  no broken requirements, `python -m pytest -q` gave **33 passed**, and `scripts/doctor.py`
+  reported PASS for every check (Python 3.14.6, packages, Ollama, models, database, 1996
+  embedded chunks, disk space).
+- **Refusal gate strengthened; evaluation now passes.** Two real gaps were fixed in
+  `app/modes/service.py`:
+  - vote questions that name a year with no roll call in the votes table now refuse
+    (previously "How did the Council vote on Haiti in 2018?" was answered from 2024
+    statements);
+  - evidence retrieval now refuses when the pack never mentions a rare term the question is
+    built around (previously "EU tariff on Haitian coffee" and "Moon Treaty" were answered
+    from Haiti passages). Meta words ("connected", "raise", "delegations") are excluded.
+  Result: `python eval/run_eval.py` -> recall **21/21 = 100%**, refusal **9/10 = 90%**
+  (target 90%), vote accuracy **6/6 = 100%**, median 91 ms, **exit 0**. The remaining miss is
+  u10 ("Haiti's space programme"), whose words appear separately in the retrieved passages.
+- **New tests:** `tests/test_answerability.py` (4 tests). Suite total **33 passed**.
+  The counter section initially regressed to "empty" because the generated question contains
+  "raise"; that word is now treated as question phrasing and the section rebuilt to 2040 chars.
+- **Dossier rebuilt after the gate change:** all ten sections `ok`, `checks.py` PASS
+  (warnings: counter 13/14, position 6/6, speech 11/25 uncited). `DOSSIER_REVIEW.md`
+  regenerated.
+- **Browser checks:** server served `/`, `/votes`, `/dossier/1`, `/library` with HTTP 200 on
+  the current code. The real "Import Haiti votes" button was clicked: the request succeeded,
+  the page reloaded, and the table still held **135 rows / 9 tallies**, so re-import does not
+  duplicate rows. Screenshots saved in `docs/screenshots/` (`votes.png`, `home.png`,
+  `library.png`, `dossier.png`).
+- Open: u10 refusal miss; no commit made.

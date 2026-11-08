@@ -15,7 +15,9 @@ SPEAKER_RE = re.compile(
     r"(?P<title>The President|The Temporary President|The Acting President|The Chairman|"
     r"The Chair|Mr\.|Ms\.|Mrs\.|Sir)\s*"
     r"(?P<name>[^:()]{0,70}?)\s*"
-    r"(?:\((?P<country>[^)]{2,60})\))?\s*:",
+    r"(?:\((?P<country>[^)]{2,60})\))?\s*"
+    # The record often adds "(spoke in Chinese)" or "(interpretation ...)" before the colon.
+    r"(?:\([^)]{0,50}\))?\s*:",
 )
 HEADER_END = re.compile(r"The meeting was called to order|^Agenda$", re.I)
 SKIP_COUNTRY = re.compile(r"^(spoke|interpretation|via|videoconference|president)", re.I)

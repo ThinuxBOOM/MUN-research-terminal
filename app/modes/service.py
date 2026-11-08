@@ -8,10 +8,56 @@ from ..llm import guards, prompts
 from ..llm.client import LLMClient
 from ..retrieve import graph, pack as packmod, search, service
 from ..settings import config
+from ..textutil import clean_term, content_words
 
 REFUSAL = "NOT ENOUGH EVIDENCE"
 NOT_FOUND = ("Not found in your library. The closest passages are shown on the left; "
              "add the relevant document to the library before relying on an answer.")
+
+YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
+VOTE_Q_RE = re.compile(r"\bvote[ds]?\b|\bvoting\b", re.I)
+# Words about the shape of the question, not its subject: a relationship question
+# may say "connected" without that word appearing in the evidence.
+META_TERMS = set("""
+connect connected connection connections link linked relate related relation compare
+comparison argument arguments objection objections position positions stance stances
+vote votes voting decide decided decides decision decisions govern governs government
+council security resolution resolutions raise raises raising delegation delegations
+""".split())
+
+
+def _missing_subject_terms(conn, question: str, pack_text: str) -> list[str]:
+    """Question terms the retrieved evidence never mentions.
+
+    A term that appears nowhere in the library is ignored: those are usually
+    spelling or inflection variants (authorise/authorises), not a subject the
+    library could cover. A term that occurs in the library but not in the pack
+    means the specific subject of the question is missing from the evidence, so
+    answering would generalise from related passages.
+    """
+    text = (pack_text or "").lower()
+    missing: list[str] = []
+    for term in {clean_term(word) for word in content_words(question)}:
+        if len(term) <= 2 or term.isdigit() or term in META_TERMS or term in text:
+            continue
+        row = conn.execute("SELECT COUNT(*) AS n FROM chunks WHERE lower(text) LIKE ?",
+                           (f"%{term}%",)).fetchone()
+        if 1 <= row["n"] <= 20:
+            missing.append(term)
+    return sorted(missing)
+
+
+def _vote_year_gap(conn, question: str) -> int | None:
+    """A year named in a vote question that has no roll call in the votes table."""
+    if not VOTE_Q_RE.search(question or ""):
+        return None
+    for year in YEAR_RE.findall(question):
+        row = conn.execute(
+            "SELECT 1 FROM votes v JOIN documents d ON d.id = v.doc_id "
+            "WHERE d.year = ? LIMIT 1", (int(year),)).fetchone()
+        if not row:
+            return int(year)
+    return None
 
 
 def _evidence_items(pack: list[dict]) -> list[dict]:
@@ -69,23 +115,39 @@ def prepare(conn, mode: str, payload: dict) -> dict:
     })
     routed = result["routed"]
     # Vote and stance questions must not be answered from unrelated passages.
-    if re.search(r"\bvote[ds]?\b|\bvoting\b", question, re.I) and not conn.execute(
+    if VOTE_Q_RE.search(question) and not conn.execute(
             "SELECT 1 FROM votes LIMIT 1").fetchone():
         base["meta"]["no_vote_data"] = True
         base["refusal"] = ("No vote data. The votes table is empty, so no vote can be quoted. "
                            "Add votes on the Votes page, or import a UN Digital Library CSV.")
         return base
+    gap_year = _vote_year_gap(conn, question)
+    if gap_year:
+        base["meta"]["vote_year_gap"] = gap_year
+        base["refusal"] = (f"No vote data for {gap_year}. The votes table has no roll call "
+                           f"for that year, so the library cannot say how the Council voted.")
+        return base
     if routed["mode"] == "stance" and routed.get("country"):
         has_statements = conn.execute(
             "SELECT 1 FROM chunks WHERE speaker_country = ? LIMIT 1",
             (routed["country"],)).fetchone()
-        if not has_statements:
+        has_votes = conn.execute("SELECT 1 FROM votes WHERE iso3 = ? LIMIT 1",
+                                 (routed["country"],)).fetchone()
+        if not has_statements and not has_votes:
             base["meta"]["no_data"] = True
             base["refusal"] = (f"No data. The library has no statements or votes for "
                                f"{routed['country']} on this agenda.")
             return base
+        base["meta"]["country_votes"] = bool(has_votes)
     if result["low_evidence"]:
         base["refusal"] = NOT_FOUND
+        return base
+    missing = _missing_subject_terms(conn, question, result["pack_text"])
+    if missing and not routed.get("exact"):
+        base["meta"]["missing_terms"] = missing
+        base["refusal"] = ("Not enough evidence on " + ", ".join(missing) +
+                           ". The library covers Haiti, but the passages retrieved do not "
+                           "mention that subject; add a document that does.")
         return base
 
     cues = {

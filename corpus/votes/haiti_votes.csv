@@ -1,0 +1,10 @@
+symbol,date,tally_yes,tally_no,tally_abstain,abstainers,no_voters,non_voters,source_url
+S/RES/2793 (2025),2025-09-30,12,0,3,China;Pakistan;Russian Federation,,,https://documents.un.org/api/symbol/access?s=S%2FPV.10009&l=en&t=pdf
+S/RES/2751 (2024),2024-09-30,15,0,0,,,,https://documents.un.org/api/symbol/access?s=S%2FPV.9735&l=en&t=pdf
+S/RES/2743 (2024),2024-07-12,15,0,0,,,,https://documents.un.org/api/symbol/access?s=S%2FPV.9684&l=en&t=pdf
+S/RES/2692 (2023),2023-07-14,15,0,0,,,,https://documents.un.org/api/symbol/access?s=S%2FPV.9377&l=en&t=pdf
+S/RES/2700 (2023),2023-10-19,15,0,0,,,,https://documents.un.org/api/symbol/access?s=S%2FPV.9444&l=en&t=pdf
+S/RES/2699 (2023),2023-10-02,13,0,2,China;Russian Federation,,,https://documents.un.org/api/symbol/access?s=S%2FPV.9430&l=en&t=pdf
+S/RES/2653 (2022),2022-10-21,15,0,0,,,,https://documents.un.org/api/symbol/access?s=S%2FPV.9159&l=en&t=pdf
+S/RES/2645 (2022),2022-07-15,15,0,0,,,,https://documents.un.org/api/symbol/access?s=S%2FPV.9095&l=en&t=pdf
+S/RES/2476 (2019),2019-06-25,13,0,2,China;Dominican Republic,,,https://documents.un.org/api/symbol/access?s=S%2FPV.8559&l=en&t=pdf

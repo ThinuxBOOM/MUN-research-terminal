@@ -107,15 +107,28 @@ def check_answer(question: str, answer: str, pack: list[dict],
 
 
 def validate_resolution_refs(text: str, known_symbols: set[str]) -> list[str]:
-    """Working-paper validator: every referenced resolution must exist in the library."""
+    """Working-paper validator: every referenced resolution must exist, with its year.
+
+    S/RES/2699 (2024) is rejected when only 2699 (2023) is in the library. A bare
+    "resolution 2699" is accepted only when that number exists exactly once.
+    """
+    known = []
+    for symbol in known_symbols:
+        match = re.search(r"/(\d{1,4})\s*(?:\((\d{4})\))?", symbol)
+        if match:
+            known.append((match.group(1), match.group(2)))
     missing = []
     for organ, number, year in SYMBOL_RE.findall(text or ""):
-        candidates = [s for s in known_symbols if f"/{number}" in s]
-        if year:
-            candidates = [s for s in candidates if f"({year})" in s or f" ({year})" in s]
-        if not candidates and not any(f"/{number}" in s for s in known_symbols):
+        matches = [y for n, y in known if n == number]
+        if year and year not in matches:
+            missing.append(f"{organ}/RES/{number} ({year})")
+        elif not matches:
             missing.append(f"{organ}/RES/{number}" + (f" ({year})" if year else ""))
-    for number, year in re.findall(r"\bresolution\s+(\d{1,4})\s*(?:\((\d{4})\))?", text or "", re.I):
-        if not any(f"/{number}" in s for s in known_symbols):
-            missing.append(f"resolution {number}" + (f" ({year})" if year else ""))
+    for number, year in re.findall(r"\bresolution\s+(\d{1,4})\s*(?:\((\d{4})\))?",
+                                   text or "", re.I):
+        matches = [y for n, y in known if n == number]
+        if year and year not in matches:
+            missing.append(f"resolution {number} ({year})")
+        elif not year and len(matches) != 1:
+            missing.append(f"resolution {number}")
     return sorted(set(missing))

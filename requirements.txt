@@ -7,6 +7,6 @@ python-multipart==0.0.32
 PyYAML==6.0.3
 httpx==0.28.1
 numpy==2.5.3
-pymupdf==1.28.6
+pymupdf==2.1
 python-docx==1.2.0
 pytest==9.1.1

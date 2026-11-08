@@ -425,12 +425,26 @@ def votes_page(request: Request, doc_id: int | None = None):
         "FROM votes v JOIN documents d ON d.id = v.doc_id "
         "LEFT JOIN countries c ON c.iso3 = v.iso3 ORDER BY d.date DESC, d.symbol, country").fetchall()]
     tallies = {doc["id"]: votes_mod.tally(conn, doc["id"]) for doc in resolutions}
+    pending = votes_mod.needs_names(conn)
     health = _health(conn)
     conn.close()
     return templates.TemplateResponse(request, "votes.html", {
         "resolutions": resolutions, "votes": rows, "tallies": tallies,
+        "pending": pending,
         "country_options": countries.COUNTRIES, "health": health, "active": "votes",
     })
+
+
+@router.post("/votes/import-haiti")
+def import_haiti_votes():
+    votes_dir = Path(__file__).resolve().parents[2] / "corpus" / "votes"
+    conn = connect()
+    try:
+        summary = votes_mod.import_tallies(
+            conn, votes_dir / "haiti_votes.csv", votes_dir / "council_members.csv")
+    finally:
+        conn.close()
+    return JSONResponse(summary)
 
 
 @router.post("/votes/add")

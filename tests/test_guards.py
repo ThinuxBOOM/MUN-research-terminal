@@ -1,5 +1,25 @@
 """Guardrail tests: markers, number validation, refusal, resolution references."""
 from app.llm import guards
+
+KNOWN = {"S/RES/2699 (2023)", "S/RES/2751 (2024)"}
+
+
+def test_resolution_ref_year_must_match():
+    assert guards.validate_resolution_refs("S/RES/2699 (2023)", KNOWN) == []
+    wrong = guards.validate_resolution_refs("S/RES/2699 (2024)", KNOWN)
+    assert wrong and "S/RES/2699 (2024)" in wrong[0]
+
+
+def test_missing_resolution_number_fails():
+    missing = guards.validate_resolution_refs("S/RES/9999 (2021)", KNOWN)
+    assert missing and "9999" in missing[0]
+
+
+def test_bare_resolution_number_only_when_unique():
+    assert guards.validate_resolution_refs("resolution 2699", KNOWN) == []
+    ambiguous = KNOWN | {"S/RES/2699 (2024)"}
+    assert guards.validate_resolution_refs("resolution 2699", ambiguous)
+    assert guards.validate_resolution_refs("resolution 2699 (2024)", ambiguous) == []
 from app.llm.client import ThinkStripper, strip_think
 
 

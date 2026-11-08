@@ -1,31 +1,167 @@
-# Haiti evaluation set (plan 14). Replace/extend expected sources with your own prep.
-# Run: python eval/run_eval.py
+# Haiti evaluation set. Draft questions only: verified: false until the user checks them.
+# Answers and expected sources were drafted from documents ingested in this library.
+# Run: python eval/run_eval.py            (retrieval, refusals, vote table)
+#      python eval/run_eval.py --answers 5 (also generates 5 answers and checks markers)
 questions:
-  - id: h1
+  # --- exact lookups -------------------------------------------------------
+  - id: e01
+    category: exact
     question: Which resolution established BINUH?
     expect_symbols: ["S/RES/2476 (2019)"]
-    should_refuse: false
-  - id: h2
+  - id: e02
+    category: exact
+    question: Which resolution authorises the Gang Suppression Force?
+    expect_symbols: ["S/RES/2793 (2025)"]
+  - id: e03
+    category: exact
+    question: Which resolution renewed the Multinational Security Support mandate in 2024?
+    expect_symbols: ["S/RES/2751 (2024)"]
+  - id: e04
+    category: exact
+    question: Which resolution renewed BINUH until 15 July 2025?
+    expect_symbols: ["S/RES/2743 (2024)"]
+  - id: e05
+    category: exact
+    question: Which resolution renewed BINUH in 2023?
+    expect_symbols: ["S/RES/2692 (2023)"]
+  - id: e06
+    category: exact
+    question: Which resolution established the Haiti sanctions regime?
+    expect_symbols: ["S/RES/2653 (2022)"]
+  - id: e07
+    category: exact
+    question: What does Article 51 of the UN Charter allow a State to do?
+    expect_symbols: ["UN CHARTER"]
+  - id: e08
+    category: exact
+    question: What does Article 33 of the UN Charter require parties to a dispute to do?
+    expect_symbols: ["UN CHARTER"]
+  - id: e09
+    category: exact
     question: What does S/RES/2699 (2023) authorise?
     expect_symbols: ["S/RES/2699 (2023)"]
-    should_refuse: false
-  - id: h3
-    question: Which earlier resolution does the Haiti sanctions resolution build on?
-    expect_symbols: ["S/RES/2653 (2022)"]
-    should_refuse: false
-  - id: h4
-    question: What did the Security Council decide about the Multinational Security Support mission?
-    expect_symbols: ["S/RES/2699 (2023)", "S/RES/2743 (2024)"]
-    should_refuse: false
-  - id: h5
-    question: What is Russia's stance on Haiti?
-    should_refuse: true
-  - id: h6
+  - id: e10
+    category: exact
+    question: Which resolution renewed the Haiti sanctions regime in 2023?
+    expect_symbols: ["S/RES/2700 (2023)"]
+  # --- votes (checked against the votes table) -----------------------------
+  - id: v01
+    category: votes
+    question: How did China vote on resolution 2793?
+    expect_symbols: ["S/RES/2793 (2025)"]
+    expect_vote: [{symbol: "S/RES/2793 (2025)", iso3: CHN, vote: A}]
+  - id: v02
+    category: votes
+    question: How did Russia vote on resolution 2793?
+    expect_symbols: ["S/RES/2793 (2025)"]
+    expect_vote: [{symbol: "S/RES/2793 (2025)", iso3: RUS, vote: A}]
+  - id: v03
+    category: votes
+    question: How did Pakistan vote on the Gang Suppression Force resolution?
+    expect_symbols: ["S/RES/2793 (2025)"]
+    expect_vote: [{symbol: "S/RES/2793 (2025)", iso3: PAK, vote: A}]
+  - id: v04
+    category: votes
+    question: How did the United States vote on the BINUH renewal in 2024?
+    expect_symbols: ["S/RES/2743 (2024)"]
+    expect_vote: [{symbol: "S/RES/2743 (2024)", iso3: USA, vote: Y}]
+  - id: v05
+    category: votes
+    question: How did France vote on the MSS renewal in 2024?
+    expect_symbols: ["S/RES/2751 (2024)"]
+    expect_vote: [{symbol: "S/RES/2751 (2024)", iso3: FRA, vote: Y}]
+  - id: v06
+    category: votes
     question: How did China vote on resolution 2699?
-    should_refuse: true
-  - id: u1
+    expect_symbols: ["S/RES/2699 (2023)"]
+    expect_vote: [{symbol: "S/RES/2699 (2023)", iso3: CHN, vote: A}]
+  # --- stance --------------------------------------------------------------
+  - id: s01
+    category: stance
+    mode: stance
+    country: USA
+    question: What is the position of the United States on Haiti?
+    expect_symbols: []
+  - id: s02
+    category: stance
+    mode: stance
+    country: CHN
+    question: What is the position of China on Haiti?
+    expect_symbols: []
+  - id: s03
+    category: stance
+    mode: stance
+    country: RUS
+    question: What is the position of Russia on Haiti?
+    expect_symbols: []
+  - id: s04
+    category: stance
+    mode: stance
+    country: GUY
+    question: What is the position of Guyana on Haiti?
+    expect_symbols: []
+  # --- connections ---------------------------------------------------------
+  - id: c01
+    category: connection
+    question: How is the Gang Suppression Force resolution connected to the MSS resolution?
+    expect_symbols: ["S/RES/2793 (2025)", "S/RES/2699 (2023)"]
+  - id: c02
+    category: connection
+    question: Which earlier resolution does the 2024 MSS renewal build on?
+    expect_symbols: ["S/RES/2751 (2024)", "S/RES/2699 (2023)"]
+  - id: c03
+    category: connection
+    question: Which resolution does the 2024 BINUH renewal continue?
+    expect_symbols: ["S/RES/2743 (2024)", "S/RES/2692 (2023)"]
+  # --- argument and counterargument (Colombia) -----------------------------
+  - id: a01
+    category: argue
+    mode: argue
+    question: Give Colombia an argument for supporting the Gang Suppression Force.
+    expect_symbols: ["S/RES/2793 (2025)"]
+  - id: a02
+    category: counter
+    mode: counter
+    question: What is the strongest objection to the Gang Suppression Force?
+    expect_symbols: ["S/RES/2793 (2025)"]
+  # --- unanswerable --------------------------------------------------------
+  - id: u01
+    category: unanswerable
     question: What is the European Union's position on Arctic shipping lanes?
     should_refuse: true
-  - id: u2
+  - id: u02
+    category: unanswerable
     question: Which resolution governs lunar mining rights?
+    should_refuse: true
+  - id: u03
+    category: unanswerable
+    question: What did the Antarctic Treaty decide about mineral exploration?
+    should_refuse: true
+  - id: u04
+    category: unanswerable
+    question: Which resolution authorises a no-fly zone over the Sahel?
+    should_refuse: true
+  - id: u05
+    category: unanswerable
+    question: How did the Security Council vote on Haiti in 2018?
+    should_refuse: true
+  - id: u06
+    category: unanswerable
+    question: What is the European Union's tariff on Haitian coffee?
+    should_refuse: true
+  - id: u07
+    category: unanswerable
+    question: Which Security Council resolution governs the Moon Treaty?
+    should_refuse: true
+  - id: u08
+    category: unanswerable
+    question: What did the Council decide about Haiti's oil reserves?
+    should_refuse: true
+  - id: u09
+    category: unanswerable
+    question: How did Colombia vote on the Arctic shipping resolution?
+    should_refuse: true
+  - id: u10
+    category: unanswerable
+    question: What did the Security Council decide about Haiti's space programme?
     should_refuse: true

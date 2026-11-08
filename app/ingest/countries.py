@@ -5,10 +5,12 @@ import json
 
 # iso3: (canonical name, aliases)
 COUNTRIES: dict[str, tuple[str, list[str]]] = {
+    "ALB": ("Albania", []),
     "ARG": ("Argentina", ["argentine republic"]),
     "AUS": ("Australia", []),
     "AUT": ("Austria", []),
     "BGD": ("Bangladesh", []),
+    "BHR": ("Bahrain", []),
     "BEL": ("Belgium", []),
     "BOL": ("Bolivia", ["plurinational state of bolivia"]),
     "BRA": ("Brazil", []),
@@ -16,6 +18,8 @@ COUNTRIES: dict[str, tuple[str, list[str]]] = {
     "CAN": ("Canada", []),
     "CHL": ("Chile", []),
     "CHN": ("China", ["people's republic of china", "prc"]),
+    "COD": ("Democratic Republic of the Congo", ["democratic republic of congo",
+                                                "congo, democratic republic of the"]),
     "COL": ("Colombia", []),
     "CRI": ("Costa Rica", []),
     "CIV": ("Côte d'Ivoire", ["cote d'ivoire", "ivory coast"]),
@@ -23,10 +27,13 @@ COUNTRIES: dict[str, tuple[str, list[str]]] = {
     "CUB": ("Cuba", []),
     "CZE": ("Czechia", ["czech republic"]),
     "DNK": ("Denmark", []),
+    "DZA": ("Algeria", []),
     "DOM": ("Dominican Republic", []),
     "ECU": ("Ecuador", []),
     "EGY": ("Egypt", ["arab republic of egypt"]),
     "SLV": ("El Salvador", []),
+    "GNQ": ("Equatorial Guinea", []),
+    "ERI": ("Eritrea", []),
     "EST": ("Estonia", []),
     "ETH": ("Ethiopia", []),
     "FJI": ("Fiji", []),
@@ -54,6 +61,7 @@ COUNTRIES: dict[str, tuple[str, list[str]]] = {
     "KAZ": ("Kazakhstan", []),
     "KEN": ("Kenya", []),
     "KWT": ("Kuwait", []),
+    "LBR": ("Liberia", []),
     "LVA": ("Latvia", []),
     "LBN": ("Lebanon", []),
     "LBY": ("Libya", []),
@@ -114,6 +122,7 @@ COUNTRIES: dict[str, tuple[str, list[str]]] = {
                                "great britain", "uk", "britain"]),
     "USA": ("United States", ["united states of america", "us", "usa", "u.s."]),
     "URY": ("Uruguay", []),
+    "VCT": ("Saint Vincent and the Grenadines", ["saint vincent"]),
     "VEN": ("Venezuela", ["bolivarian republic of venezuela"]),
     "VNM": ("Viet Nam", ["vietnam"]),
     "YEM": ("Yemen", []),
@@ -121,8 +130,9 @@ COUNTRIES: dict[str, tuple[str, list[str]]] = {
     "ZWE": ("Zimbabwe", []),
 }
 
-UNSC_15 = ["CHN", "FRA", "RUS", "GBR", "USA", "DZA", "ECU", "GUY", "JPN", "MLT",
-           "MOZ", "KOR", "SLE", "SVN", "SOM"]
+# Security Council composition for 2026 (verified on the UN Security Council site).
+UNSC_15 = ["BHR", "CHN", "COL", "COD", "DNK", "FRA", "GRC", "LVA", "LBR", "PAK",
+           "PAN", "RUS", "SOM", "GBR", "USA"]
 
 _ALIAS_INDEX: dict[str, str] = {}
 
