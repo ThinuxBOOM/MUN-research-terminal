@@ -371,6 +371,6 @@ The working demo dossier (UNSC, "The situation in Haiti", Colombia) is conferenc
 - **Browser checks:** server served `/`, `/votes`, `/dossier/1`, `/library` with HTTP 200 on
   the current code. The real "Import Haiti votes" button was clicked: the request succeeded,
   the page reloaded, and the table still held **135 rows / 9 tallies**, so re-import does not
-  duplicate rows. Screenshots saved in `docs/screenshots/` (`votes.png`, `home.png`,
-  `library.png`, `dossier.png`).
+  duplicate rows. The pages were checked visually in the browser; screenshots are not kept
+  in the repository.
 - Open: u10 refusal miss; no commit made.

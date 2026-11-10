@@ -1,47 +1,83 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Your research station</h1>
-<p class="muted">Everything runs on this laptop. Documents stay in your library; the model only
-writes from passages you already have.</p>
+<section class="hero" data-reveal>
+  <p class="kicker">Local-first research console</p>
+  <h1>Read the record.<br><em>Argue it precisely.</em></h1>
+  <p class="lede">Every answer is built from the documents on this laptop. Retrieve the passage,
+    check the citation, then take the floor — nothing is written from the model's memory.</p>
+  <div class="hero-actions">
+    <a class="btn" href="/conferences/new">New conference</a>
+    <a class="btn quiet" href="/ask">Ask the record</a>
+    <a class="btn quiet" href="/library">Open library</a>
+  </div>
 
-<div class="row" style="margin:18px 0 24px">
-  <a class="btn" href="/conferences/new">New conference</a>
-  <a class="btn quiet" href="/library">Open library</a>
-  <a class="btn quiet" href="/ask">Ask a question</a>
+  <dl class="hero-stats">
+    <div><dt>Documents</dt><dd>{{ health.docs }}</dd></div>
+    <div><dt>Passages</dt><dd>{{ health.chunks }}</dd></div>
+    <div><dt>Vote rows</dt><dd>{{ health.votes }}</dd></div>
+    <div><dt>Graph edges</dt><dd>{{ health.edges }}{% if health.pending_edges %}<small>{{ health.pending_edges }} pending</small>{% endif %}</dd></div>
+  </dl>
+</section>
+
+<div class="section-head" data-reveal>
+  <div>
+    <p class="kicker">Dossiers</p>
+    <h2>Conferences</h2>
+  </div>
+  <a class="btn quiet small" href="/conferences/new">New conference</a>
 </div>
 
-<div class="grid two">
-  <div class="card">
-    <h2 style="margin-top:0">Conferences</h2>
-    {% if conferences %}
-      {% for conf in conferences %}
-      <div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:10px 0">
-        <div>
-          <a href="/dossier/{{ conf.id }}"><strong>{{ conf.name }}</strong></a>
-          <div class="muted" style="font-size:14px">{{ conf.committee }} · {{ conf.agenda }}</div>
-        </div>
-        <span class="pill">{{ conf.my_country }}</span>
+{% if conferences %}
+<div class="conference-list" data-reveal>
+  {% for conf in conferences %}
+  <a class="conference" href="/dossier/{{ conf.id }}">
+    <span class="conference-index">{{ '%02d'|format(loop.index) }}</span>
+    <span class="conference-main">
+      <strong>{{ conf.name }}</strong>
+      <span>{{ conf.committee }} · {{ conf.agenda }}</span>
+    </span>
+    <span class="pill">{{ conf.my_country }}</span>
+    <span class="conference-arrow" aria-hidden="true">→</span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty" data-reveal>
+  No conferences yet. Create one and the dossier is assembled from your library.
+</div>
+{% endif %}
+
+<div class="split" style="margin-top:34px">
+  <div class="card" data-reveal>
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div>
+        <p class="kicker" style="margin-bottom:8px">Index</p>
+        <h2 style="margin:0">Library health</h2>
       </div>
-      {% endfor %}
-    {% else %}
-      <p class="muted">No conferences yet. Create one to build a dossier.</p>
+      <a class="btn quiet small" href="/library">Open</a>
+    </div>
+    <div class="meter-list" style="margin-top:14px">
+      <div class="meter-row"><span>Documents</span><b>{{ health.docs }}</b></div>
+      <div class="meter-row"><span>Chunks</span><b>{{ health.chunks }}</b></div>
+      <div class="meter-row"><span>Embeddings</span><b>{{ health.vectors }}</b></div>
+      <div class="meter-row"><span>Vote rows</span><b>{{ health.votes }}</b></div>
+      <div class="meter-row"><span>Graph edges</span><b>{{ health.edges }} <span class="faint">/ {{ health.pending_edges }} pending</span></b></div>
+      <div class="meter-row"><span>Model</span><b>{{ 'loaded' if health.ok else 'not reachable' }}</b></div>
+    </div>
+    {% if health.docs == 0 %}
+      <p class="muted" style="margin:14px 0 0;font-size:13.5px">The library is empty. Run
+      <span class="kbd">fetch.bat</span> while online, or drop PDFs and text files into the Library page.</p>
     {% endif %}
   </div>
 
-  <div class="card">
-    <h2 style="margin-top:0">Library health</h2>
-    <table>
-      <tr><td>Documents</td><td>{{ health.docs }}</td></tr>
-      <tr><td>Chunks</td><td>{{ health.chunks }}</td></tr>
-      <tr><td>Embeddings</td><td>{{ health.vectors }}</td></tr>
-      <tr><td>Vote rows</td><td>{{ health.votes }}</td></tr>
-      <tr><td>Graph edges</td><td>{{ health.edges }} ({{ health.pending_edges }} pending)</td></tr>
-      <tr><td>Model</td><td>{{ 'loaded' if health.ok else 'not reachable' }}</td></tr>
-    </table>
-    {% if health.docs == 0 %}
-      <p class="muted">The library is empty. Run <span class="kbd">fetch.bat</span> while online,
-      or drop PDFs into the Library page.</p>
-    {% endif %}
+  <div class="card" data-reveal>
+    <p class="kicker" style="margin-bottom:8px">Method</p>
+    <h2 style="margin:0 0 16px">How an answer is made</h2>
+    <div class="steps">
+      <div class="step"><strong>Retrieve</strong><span>Hybrid search over your documents, filtered to the agenda.</span></div>
+      <div class="step"><strong>Cite</strong><span>The model writes markers; the app expands them from the database.</span></div>
+      <div class="step"><strong>Check</strong><span>Numbers and resolutions are validated before you see them.</span></div>
+    </div>
   </div>
 </div>
 {% endblock %}

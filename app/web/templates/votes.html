@@ -1,12 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Votes</h1>
-<p class="muted">Vote rows are stored, never generated. Tallies below are computed from the table,
-so they are safe to quote in committee.</p>
+<div class="page-head">
+  <p class="kicker">Record</p>
+  <h1>Votes</h1>
+  <p class="lede">Vote rows are stored, never generated. Tallies below are computed from the
+    table, so they are safe to quote in committee.</p>
+</div>
+
+<dl class="hero-stats" style="margin:0 0 28px">
+  <div><dt>Resolutions</dt><dd>{{ resolutions|length }}</dd></div>
+  <div><dt>Vote rows</dt><dd>{{ votes|length }}</dd></div>
+  <div><dt>Tallied</dt><dd>{{ tallies.values()|selectattr('total')|list|length }}</dd></div>
+  <div><dt>Needs names</dt><dd>{{ pending|length }}</dd></div>
+</dl>
 
 <div class="grid two">
-  <div class="card">
-    <h3 style="margin-top:0">Enter a vote by hand</h3>
+  <div class="card" data-reveal>
+    <p class="kicker" style="margin-bottom:8px">Manual</p>
+    <h3 style="margin:0">Enter a vote by hand</h3>
     <form method="post" action="/votes/add">
       <label for="doc_id">Resolution</label>
       <select id="doc_id" name="doc_id">
@@ -27,82 +38,105 @@ so they are safe to quote in committee.</p>
         <option value="A">Abstain (A)</option>
         <option value="NV">Not voting (NV)</option>
       </select>
-      <div class="row" style="margin-top:12px"><button type="submit">Save vote</button></div>
+      <div class="row" style="margin-top:16px"><button type="submit">Save vote</button></div>
     </form>
   </div>
 
-  <div class="card">
-    <h3 style="margin-top:0">Import a UN Digital Library CSV</h3>
-    <p class="muted" style="font-size:14px">Columns: <span class="kbd">symbol,iso3,vote</span>
+  <div class="card" data-reveal>
+    <p class="kicker" style="margin-bottom:8px">Import</p>
+    <h3 style="margin:0">UN Digital Library CSV</h3>
+    <p class="muted" style="font-size:13.5px">Columns <span class="kbd">symbol,iso3,vote</span>
       with a header row. Unknown symbols are reported, never invented.</p>
     <form id="csvform" enctype="multipart/form-data">
-      <input type="file" name="file" accept=".csv,text/csv">
-      <div class="row" style="margin-top:10px"><button type="submit">Import CSV</button></div>
+      <input type="file" name="file" accept=".csv,text/csv" aria-label="Votes CSV">
+      <div class="row" style="margin-top:12px"><button type="submit">Import CSV</button></div>
     </form>
-    <div id="csvresult" class="muted" style="font-size:14px;margin-top:10px"></div>
+    <div id="csvresult" class="muted" style="font-size:13.5px;margin-top:12px"></div>
   </div>
 </div>
 
-<div class="card">
-  <h3 style="margin-top:0">Haiti vote data (from the adoption meetings)</h3>
-  <p class="muted" style="font-size:14px">Expands each stated tally into per-country rows using
-    the council membership list. A tally that disagrees with the membership roster is rejected,
-    never guessed.</p>
-  <button type="button" id="importhaiti">Import Haiti votes</button>
-  <div id="importresult" class="muted" style="font-size:14px;margin-top:10px"></div>
+<div class="card" style="border-color:var(--line-strong)" data-reveal>
+  <div class="row" style="justify-content:space-between;align-items:flex-start">
+    <div>
+      <p class="kicker" style="margin-bottom:8px">Adoption records</p>
+      <h3 style="margin:0">Haiti vote data</h3>
+      <p class="muted" style="font-size:13.5px;max-width:70ch">Expands each stated tally into
+        per-country rows using the council membership list. A tally that disagrees with the
+        roster is rejected, never guessed.</p>
+    </div>
+    <button type="button" id="importhaiti">Import Haiti votes</button>
+  </div>
+  <div id="importresult" class="muted" style="font-size:13.5px;margin-top:12px"></div>
 </div>
 
 {% if pending %}
-<div class="card" style="border-color:#b7791f">
-  <h3 style="margin-top:0">To do: resolutions that still need abstainer names ({{ pending|length }})</h3>
-  <p class="muted" style="font-size:14px">The tally states abstentions but the names are not in the
-    record yet. These rows are stored, but no votes are written until the names are added.</p>
-  <table>
-    <tr><th>Resolution</th><th>Date</th><th>Stated tally</th><th>What is missing</th><th>Source</th></tr>
-    {% for row in pending %}
-    <tr>
-      <td>{{ row.symbol }}</td><td>{{ row.date or '—' }}</td>
-      <td>{{ row.yes }}–{{ row.no }}–{{ row.abstain }}</td>
-      <td class="muted">{{ row.message }}</td>
-      <td><a href="{{ row.source_url }}" target="_blank" rel="noopener">document</a></td>
-    </tr>
-    {% endfor %}
-  </table>
+<div class="card" style="border-left:2px solid var(--warn)" data-reveal>
+  <p class="kicker" style="margin-bottom:8px">Pending</p>
+  <h3 style="margin-top:0">Resolutions that still need abstainer names ({{ pending|length }})</h3>
+  <p class="muted" style="font-size:13.5px">The tally states abstentions but the names are not in
+    the record yet. These rows are stored, but no votes are written until the names are added.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Resolution</th><th>Date</th><th>Stated tally</th><th>What is missing</th><th>Source</th></tr></thead>
+      <tbody>
+        {% for row in pending %}
+        <tr>
+          <td>{{ row.symbol }}</td><td class="muted">{{ row.date or '—' }}</td>
+          <td><strong>{{ row.yes }}–{{ row.no }}–{{ row.abstain }}</strong></td>
+          <td class="muted">{{ row.message }}</td>
+          <td><a href="{{ row.source_url }}" target="_blank" rel="noopener">document</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endif %}
 
-<div class="card">
-  <h3 style="margin-top:0">Tallies</h3>
+<div class="card" data-reveal>
+  <p class="kicker" style="margin-bottom:8px">Computed</p>
+  <h3 style="margin:0 0 14px">Tallies</h3>
   {% if resolutions %}
-  <table>
-    <tr><th>Resolution</th><th>Date</th><th>Yes</th><th>No</th><th>Abstain</th><th>Not voting</th></tr>
-    {% for doc in resolutions %}
-      {% set tally = tallies[doc.id] %}
-      <tr>
-        <td>{{ doc.symbol }}</td>
-        <td>{{ doc.date or '—' }}</td>
-        <td>{{ tally.in_favour }}</td>
-        <td>{{ tally.against }}</td>
-        <td>{{ tally.abstentions }}</td>
-        <td>{{ tally.non_voting }}</td>
-      </tr>
-    {% endfor %}
-  </table>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Resolution</th><th>Date</th><th>Yes</th><th>No</th><th>Abstain</th><th>Not voting</th></tr></thead>
+      <tbody>
+        {% for doc in resolutions %}
+          {% set tally = tallies[doc.id] %}
+          <tr>
+            <td><strong>{{ doc.symbol }}</strong></td>
+            <td class="muted">{{ doc.date or '—' }}</td>
+            <td>{{ tally.in_favour }}</td>
+            <td>{{ tally.against }}</td>
+            <td>{{ tally.abstentions }}</td>
+            <td>{{ tally.non_voting }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}<p class="muted">No resolutions in the library yet.</p>{% endif %}
 </div>
 
-<div class="card">
-  <h3 style="margin-top:0">All vote rows ({{ votes|length }})</h3>
+<div class="card" data-reveal>
+  <p class="kicker" style="margin-bottom:8px">Rows</p>
+  <h3 style="margin:0 0 14px">All vote rows ({{ votes|length }})</h3>
   {% if votes %}
-  <table>
-    <tr><th>Resolution</th><th>Date</th><th>Country</th><th>Vote</th><th>Source</th></tr>
-    {% for row in votes %}
-    <tr>
-      <td>{{ row.symbol }}</td><td>{{ row.date or '—' }}</td><td>{{ row.country }}</td>
-      <td><strong>{{ row.vote }}</strong></td><td class="muted">{{ row.source }}</td>
-    </tr>
-    {% endfor %}
-  </table>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Resolution</th><th>Date</th><th>Country</th><th>Vote</th><th>Source</th></tr></thead>
+      <tbody>
+        {% for row in votes %}
+        <tr>
+          <td><strong>{{ row.symbol }}</strong></td><td class="muted">{{ row.date or '—' }}</td>
+          <td>{{ row.country }}</td>
+          <td><strong>{{ row.vote }}</strong></td>
+          <td class="muted" style="font-size:11.5px;word-break:break-all">{{ row.source }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
   <p class="muted">No votes recorded yet. Add them above, or import a CSV.</p>
   {% endif %}

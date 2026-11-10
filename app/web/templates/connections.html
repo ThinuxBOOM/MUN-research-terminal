@@ -1,44 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Connections</h1>
-<p class="muted">Regex links are accepted automatically. Anything the model suggests waits here until
-you accept it; rejected edges are never used in answers.</p>
-
-<div class="card">
-  <h2 style="margin-top:0">Review queue ({{ pending|length }})</h2>
-  {% if pending %}
-  <table>
-    <tr><th>From</th><th>Relation</th><th>To</th><th>Origin</th><th></th></tr>
-    {% for edge in pending %}
-    <tr>
-      <td>{{ edge.src_symbol or edge.src_id }}</td>
-      <td><span class="pill">{{ edge.rel }}</span></td>
-      <td>{{ edge.dst_symbol or edge.dst_id }}</td>
-      <td class="muted">{{ edge.origin }} · {{ '%.2f'|format(edge.confidence or 0) }}</td>
-      <td>
-        <form method="post" action="/connections/{{ edge.id }}/accept" style="display:inline">
-          <button type="submit">Accept</button></form>
-        <form method="post" action="/connections/{{ edge.id }}/reject" style="display:inline">
-          <button class="quiet" type="submit">Reject</button></form>
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% else %}<p class="muted">Nothing waiting.</p>{% endif %}
+<div class="page-head">
+  <p class="kicker">Graph</p>
+  <h1>Connections</h1>
+  <p class="lede">Regex links are accepted automatically. Anything the model suggests waits here
+    until you accept it; rejected edges are never used in answers.</p>
 </div>
 
-<div class="card">
-  <h2 style="margin-top:0">Accepted links (latest {{ accepted|length }})</h2>
-  <table>
-    <tr><th>From</th><th>Relation</th><th>To</th><th>Origin</th></tr>
-    {% for edge in accepted %}
-    <tr>
-      <td>{{ edge.src_symbol or edge.src_id }}</td>
-      <td><span class="pill ok">{{ edge.rel }}</span></td>
-      <td>{{ edge.dst_symbol or edge.dst_id }}</td>
-      <td class="muted">{{ edge.origin }}</td>
-    </tr>
-    {% endfor %}
-  </table>
+<div class="card" data-reveal>
+  <div class="row" style="justify-content:space-between;align-items:flex-start">
+    <div>
+      <p class="kicker" style="margin-bottom:8px">Review</p>
+      <h2 style="margin:0">Queue ({{ pending|length }})</h2>
+    </div>
+    {% if pending %}<span class="pill warn">Awaiting decision</span>{% endif %}
+  </div>
+  {% if pending %}
+  <div class="table-wrap" style="margin-top:14px">
+    <table>
+      <thead><tr><th>From</th><th>Relation</th><th>To</th><th>Origin</th><th></th></tr></thead>
+      <tbody>
+        {% for edge in pending %}
+        <tr>
+          <td>{{ edge.src_symbol or edge.src_id }}</td>
+          <td><span class="pill">{{ edge.rel }}</span></td>
+          <td>{{ edge.dst_symbol or edge.dst_id }}</td>
+          <td class="muted">{{ edge.origin }} · {{ '%.2f'|format(edge.confidence or 0) }}</td>
+          <td>
+            <div class="row" style="flex-wrap:nowrap">
+              <form method="post" action="/connections/{{ edge.id }}/accept" style="display:inline">
+                <button class="small" type="submit">Accept</button></form>
+              <form method="post" action="/connections/{{ edge.id }}/reject" style="display:inline">
+                <button class="quiet small" type="submit">Reject</button></form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="muted" style="margin:12px 0 0">Nothing waiting.</p>{% endif %}
+</div>
+
+<div class="card" data-reveal>
+  <p class="kicker" style="margin-bottom:8px">Accepted</p>
+  <h2 style="margin:0 0 14px">Latest links ({{ accepted|length }})</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>From</th><th>Relation</th><th>To</th><th>Origin</th></tr></thead>
+      <tbody>
+        {% for edge in accepted %}
+        <tr>
+          <td>{{ edge.src_symbol or edge.src_id }}</td>
+          <td><span class="pill ok">{{ edge.rel }}</span></td>
+          <td>{{ edge.dst_symbol or edge.dst_id }}</td>
+          <td class="muted">{{ edge.origin }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

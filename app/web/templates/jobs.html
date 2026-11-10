@@ -1,20 +1,33 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Jobs</h1>
-<p class="muted">Dossiers and re-embedding run here, so the app stays usable while they work.</p>
-<div class="card">
-  <table>
-    <tr><th>#</th><th>Kind</th><th>Status</th><th>Progress</th><th>Message</th><th>Created</th></tr>
-    {% for job in jobs %}
-    <tr>
-      <td>{{ job.id }}</td>
-      <td>{{ job.kind }}</td>
-      <td><span class="pill {{ 'ok' if job.status == 'done' else ('bad' if job.status == 'failed' else '') }}">{{ job.status }}</span></td>
-      <td>{{ ((job.progress or 0) * 100)|round(0)|int }}%</td>
-      <td>{{ job.message }}</td>
-      <td class="muted">{{ job.created_at }}</td>
-    </tr>
-    {% endfor %}
-  </table>
+<div class="page-head">
+  <p class="kicker">Background</p>
+  <h1>Jobs</h1>
+  <p class="lede">Dossiers and re-embedding run here, so the app stays usable while they work.</p>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden" data-reveal>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Kind</th><th>Status</th><th>Progress</th><th>Message</th><th>Created</th></tr></thead>
+      <tbody>
+        {% for job in jobs %}
+        <tr>
+          <td><strong>{{ job.id }}</strong></td>
+          <td>{{ job.kind }}</td>
+          <td><span class="pill {{ 'ok' if job.status == 'done' else ('bad' if job.status == 'failed' else '') }}">{{ job.status }}</span></td>
+          <td style="min-width:120px">
+            <div class="row" style="gap:8px;flex-wrap:nowrap">
+              <div class="progress" style="width:70px"><i style="width:{{ ((job.progress or 0) * 100)|round(0)|int }}%"></i></div>
+              <span class="muted" style="font-family:var(--mono);font-size:11.5px">{{ ((job.progress or 0) * 100)|round(0)|int }}%</span>
+            </div>
+          </td>
+          <td class="muted">{{ job.message }}</td>
+          <td class="muted" style="font-family:var(--mono);font-size:11.5px">{{ job.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

@@ -1,45 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ conference.name }}</h1>
-<p class="muted">{{ conference.committee }} · {{ conference.agenda }} ·
-  you are {{ conference.my_country }} · speech {{ conference.speech_seconds }}s</p>
-
-<div class="row" style="margin:14px 0">
-  <button id="buildAll">Build all sections</button>
-  <a class="btn quiet" href="/export/{{ conference.id }}.md">Export Markdown</a>
-  <a class="btn quiet" href="/export/{{ conference.id }}.docx">Export DOCX</a>
-  <a class="btn quiet" href="/ask?conference_id={{ conference.id }}">Ask about this agenda</a>
+{% set labels = {'background': 'Background', 'legal': 'Legal', 'history': 'History',
+  'profiles': 'Profiles', 'blocs': 'Blocs', 'position': 'Position', 'counter': 'Counter',
+  'speech': 'Speech', 'working_paper': 'Working paper', 'pois': 'POIs'} %}
+<div class="page-head page-head-row">
+  <div>
+    <p class="kicker">Dossier</p>
+    <h1>{{ conference.name }}</h1>
+    <p class="lede">{{ conference.committee }} · {{ conference.agenda }}.
+      You are <strong>{{ conference.my_country }}</strong> · speech {{ conference.speech_seconds }}s.</p>
+  </div>
+  <div class="row">
+    <button id="buildAll">Build all sections</button>
+    <a class="btn quiet" href="/export/{{ conference.id }}.md">Markdown</a>
+    <a class="btn quiet" href="/export/{{ conference.id }}.docx">DOCX</a>
+    <a class="btn quiet" href="/ask?conference_id={{ conference.id }}">Ask</a>
+  </div>
 </div>
-<div id="jobbox" style="display:none" class="card">
-  <div class="row" style="justify-content:space-between"><strong id="jobmsg">Working…</strong>
-    <span class="muted" id="jobpct"></span></div>
-  <div class="progress" style="margin-top:8px"><i id="jobbar"></i></div>
+
+<div id="jobbox" class="card" style="display:none" aria-live="polite">
+  <div class="row" style="justify-content:space-between">
+    <strong id="jobmsg" style="font:500 14px/1.3 var(--serif)">Working…</strong>
+    <span class="muted" id="jobpct" style="font-family:var(--mono);font-size:12px"></span>
+  </div>
+  <div class="progress" style="margin-top:12px"><i id="jobbar"></i></div>
 </div>
 
 <div class="dossier-layout">
-  <aside class="sidebar">
+  <aside class="sidebar" aria-label="Dossier sections">
     {% for sec in sections %}
       <a href="/dossier/{{ conference.id }}?section={{ sec.section }}"
          class="{{ 'active' if current and current.id == sec.id }}">
-        {{ sec.section|replace('_', ' ')|capitalize }}
+        <span>{{ labels.get(sec.section, sec.section|replace('_', ' ')|capitalize) }}</span>
         {% if sec.status != 'ok' %}<span class="pill warn">{{ sec.status }}</span>{% endif %}
       </a>
     {% endfor %}
-    {% if not sections %}<span class="muted">No sections yet.</span>{% endif %}
+    {% if not sections %}<span class="muted" style="padding:8px 10px;font-size:13px">No sections yet.</span>{% endif %}
   </aside>
+
   <section>
     {% if current %}
-      <div class="card">
-        <div class="row" style="justify-content:space-between">
-          <h2 style="margin:0">{{ current.section|replace('_', ' ')|capitalize }}</h2>
-          <button class="quiet" onclick="regen('{{ current.section }}')">Regenerate</button>
+      <article class="card" data-reveal>
+        <div class="row" style="justify-content:space-between;align-items:flex-start">
+          <div>
+            <p class="kicker" style="margin-bottom:8px">Section</p>
+            <h2 style="margin:0">{{ labels.get(current.section, current.section|replace('_', ' ')|capitalize) }}</h2>
+          </div>
+          <button class="quiet small" onclick="regen('{{ current.section }}')">Regenerate</button>
         </div>
-        <p class="muted" style="font-size:13px">Generated {{ current.generated_at }}</p>
+        <p class="muted" style="font-size:12px;font-family:var(--mono);margin-top:10px">
+          Generated {{ current.generated_at }}</p>
         <div class="md" id="md"></div>
-      </div>
+      </article>
     {% else %}
-      <div class="card muted">Choose “Build all sections” to create the dossier.
-        Sections are saved as each one finishes, so nothing is lost if you stop.</div>
+      <div class="empty">
+        Choose “Build all sections” to assemble the dossier. Each section is saved as it finishes,
+        so stopping never loses completed work.
+      </div>
     {% endif %}
   </section>
 </div>
@@ -48,23 +65,54 @@
 <script>
 const confId = {{ conference.id }};
 const md = {{ (current.content_md if current else "")|tojson }};
-document.getElementById("md").textContent = md;
 
+function escapeHtml(text) {
+  return (text || "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+}
+
+/* Minimal, escaped markdown: headings, quotes, tables, lists, paragraphs. */
 function markdownToHtml(text) {
-  return (text || "").split("\n").map(line => {
-    if (line.startsWith("### ")) return "<h3>" + line.slice(4) + "</h3>";
-    if (line.startsWith("## ")) return "<h2>" + line.slice(3) + "</h2>";
-    if (line.startsWith("> ")) return "<blockquote>" + line.slice(2) + "</blockquote>";
-    if (/^\|/.test(line)) return "<div class='muted' style='font-family:ui-monospace,monospace;font-size:13px'>" + line + "</div>";
-    if (/^[-*] /.test(line)) return "• " + line.slice(2) + "<br>";
-    return line + "<br>";
-  }).join("");
+  const lines = escapeHtml(text).split("\n");
+  const out = [];
+  let table = null;
+  let list = null;
+  const flushList = () => { if (list) { out.push("<ul>" + list.join("") + "</ul>"); list = null; } };
+  const flushTable = () => {
+    if (!table) return;
+    const rows = table.filter(r => !/^\|[\s:|-]+\|$/.test(r));
+    if (rows.length) {
+      const cells = row => row.replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+      const head = cells(rows[0]);
+      out.push("<table><thead><tr>" + head.map(c => `<th>${c}</th>`).join("") + "</tr></thead><tbody>" +
+        rows.slice(1).map(r => "<tr>" + cells(r).map(c => `<td>${c}</td>`).join("") + "</tr>").join("") +
+        "</tbody></table>");
+    }
+    table = null;
+  };
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (/^\|/.test(line)) { flushList(); (table = table || []).push(line); continue; }
+    flushTable();
+    if (!line.trim()) { flushList(); continue; }
+    if (line.startsWith("### ")) { flushList(); out.push("<h3>" + line.slice(4) + "</h3>"); continue; }
+    if (line.startsWith("## ")) { flushList(); out.push("<h2>" + line.slice(3) + "</h2>"); continue; }
+    if (line.startsWith("# ")) { flushList(); out.push("<h2>" + line.slice(2) + "</h2>"); continue; }
+    if (line.startsWith("> ")) { flushList(); out.push("<blockquote>" + line.slice(2) + "</blockquote>"); continue; }
+    if (/^[-*] /.test(line)) { (list = list || []).push("<li>" + line.slice(2) + "</li>"); continue; }
+    if (/^\d+\. /.test(line)) { flushList(); out.push("<p>" + line + "</p>"); continue; }
+    flushList();
+    out.push("<p>" + line + "</p>");
+  }
+  flushList();
+  flushTable();
+  return out.join("");
 }
 document.getElementById("md").innerHTML = markdownToHtml(md);
 
 let poller = null;
 async function watch(jobId) {
-  document.getElementById("jobbox").style.display = "block";
+  const box = document.getElementById("jobbox");
+  box.style.display = "block";
   poller = setInterval(async () => {
     const resp = await fetch("/api/jobs/" + jobId);
     const job = await resp.json();

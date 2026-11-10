@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>New conference</h1>
-<p class="muted">Fill this in once. The dossier is built from your library, not from the model's memory.</p>
+<div class="page-head">
+  <p class="kicker">Setup</p>
+  <h1>New conference</h1>
+  <p class="lede">Fill this in once. The dossier is built from your library, not from the model's memory.</p>
+</div>
 
-<form method="post" action="/conferences" class="card" id="confform">
+<form method="post" action="/conferences" class="card" id="confform" data-reveal>
   <label for="name">Conference name</label>
   <input id="name" name="name" required placeholder="e.g. Harvard WorldMUN 2027">
 
-  <div class="grid two">
+  <div class="grid two" style="gap:0 20px">
     <div>
       <label for="committee">Committee</label>
       <select id="committee" name="committee">
@@ -33,10 +36,10 @@
     {% for topic in topics %}<option value="{{ topic.name }}">{{ topic.name }}</option>{% endfor %}
   </select>
 
-  <label>Participating countries (UNSC-15 preset available)</label>
+  <label>Participating countries</label>
   <div class="row" style="margin-bottom:8px">
-    <button type="button" class="quiet" id="preset">Use UNSC-15 preset</button>
-    <span class="muted" id="chosenCount">0 selected</span>
+    <button type="button" class="quiet small" id="preset">Use UNSC-15 preset</button>
+    <span class="muted" id="chosenCount" style="font-family:var(--mono);font-size:11.5px">0 selected</span>
   </div>
   <select id="countries" multiple size="12" style="height:auto">
     {% for iso3, info in country_options.items() %}
@@ -45,7 +48,7 @@
   </select>
   <input type="hidden" name="countries_json" id="countries_json" value="[]">
 
-  <div class="grid two">
+  <div class="grid two" style="gap:0 20px">
     <div>
       <label for="speech_seconds">Speech length (seconds)</label>
       <input id="speech_seconds" name="speech_seconds" type="number" value="90" min="30" max="600">
@@ -59,12 +62,13 @@
     </div>
   </div>
 
-  <div class="card" style="background:var(--panel-2);margin-top:16px">
-    <strong>Corpus coverage</strong>
-    <div id="coverage" class="muted">Pick a topic to check your library.</div>
+  <div class="card" style="background:var(--panel-2);margin-top:20px">
+    <p class="kicker" style="margin-bottom:8px">Coverage</p>
+    <strong>Corpus check</strong>
+    <div id="coverage" class="muted" style="margin-top:6px;font-size:13.5px">Pick a topic to check your library.</div>
   </div>
 
-  <div class="row" style="margin-top:16px">
+  <div class="row" style="margin-top:20px">
     <button type="submit">Create conference</button>
   </div>
 </form>

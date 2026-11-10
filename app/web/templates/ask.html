@@ -1,55 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Ask</h1>
-{% if conference %}
-  <p class="muted">{{ conference.name }} · {{ conference.committee }} · {{ conference.agenda }} ·
-    you are {{ conference.my_country }}</p>
-{% else %}
-  <p class="muted">No conference selected — answers still work, without agenda bias.</p>
-{% endif %}
+<div class="page-head">
+  <p class="kicker">Query</p>
+  <h1>Ask the record</h1>
+  {% if conference %}
+    <p class="lede">{{ conference.name }} · {{ conference.committee }} · {{ conference.agenda }}.
+      You are {{ conference.my_country }}.</p>
+  {% else %}
+    <p class="lede">No conference selected — answers still work, without agenda bias.</p>
+  {% endif %}
+</div>
 
-<form id="askform" class="card" onsubmit="return false">
-  <div class="row" style="margin-bottom:10px">
+<form id="askform" class="card" onsubmit="return false" data-reveal>
+  <div class="row" style="margin-bottom:14px" role="group" aria-label="Answer mode">
     {% for key, label in modes %}
       <button class="chip {{ 'active' if loop.first }}" type="button" data-mode="{{ key }}">{{ label }}</button>
     {% endfor %}
   </div>
   <div class="askbar">
-    <input id="question" name="question" placeholder="What is the US stance on Haiti?" autofocus
-           value="{{ q }}" autocomplete="off">
+    <input id="question" name="question" placeholder="How did China vote on resolution 2793?"
+           autofocus value="{{ q }}" autocomplete="off" aria-label="Question">
     <button id="send" type="submit">Ask</button>
   </div>
-  <div class="row" style="margin-top:10px">
-    <select id="country" style="max-width:230px">
+  <div class="row" style="margin-top:12px">
+    <select id="country" style="max-width:230px" aria-label="Country">
       <option value="">Country (optional)</option>
       {% for iso3, info in country_options.items() %}
         <option value="{{ iso3 }}">{{ info[0] }}</option>
       {% endfor %}
     </select>
-    <input id="doc_a" placeholder="From document (Connect)" style="max-width:190px">
-    <input id="doc_b" placeholder="To document (Connect)" style="max-width:190px">
+    <input id="doc_a" placeholder="From document (Connect)" style="max-width:200px" aria-label="From document">
+    <input id="doc_b" placeholder="To document (Connect)" style="max-width:200px" aria-label="To document">
     <input type="hidden" id="conference_id" value="{{ conference.id if conference else 0 }}">
-    <span class="muted" style="font-size:13px">Enter asks · <span class="kbd">/</span> focuses the box</span>
+    <span class="muted" style="font-size:12px;font-family:var(--mono)">
+      <span class="kbd">/</span> focuses the box</span>
   </div>
 </form>
 
 <div class="grid two">
-  <div class="card pane">
-    <h3 style="margin-top:0">Evidence <span id="evms" class="pill">—</span></h3>
-    <div id="evidence" class="muted">Retrieved passages appear here before the answer.</div>
+  <div class="card pane" data-reveal>
+    <div class="row" style="justify-content:space-between;margin-bottom:10px">
+      <p class="kicker" style="margin:0">Evidence</p>
+      <span id="evms" class="pill">—</span>
+    </div>
+    <div id="evidence" class="muted" style="font-size:13.5px">
+      Retrieved passages appear here before the answer.</div>
     <div id="votes"></div>
   </div>
-  <div class="card pane">
-    <h3 style="margin-top:0">Answer</h3>
+  <div class="card pane" data-reveal>
+    <p class="kicker" style="margin:0 0 10px">Answer</p>
     <div id="answer" class="answer muted">The answer streams here, with citation checks below.</div>
     <div id="flags"></div>
   </div>
 </div>
 
 {% if recent %}
-<div class="card">
+<div class="card" data-reveal>
+  <p class="kicker" style="margin-bottom:10px">History</p>
   <h3 style="margin-top:0">Recent questions</h3>
-  {% for note in recent %}<div class="muted">· {{ note.text }}</div>{% endfor %}
+  {% for note in recent %}<div class="muted" style="font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--line)">· {{ note.text }}</div>{% endfor %}
 </div>
 {% endif %}
 {% endblock %}
@@ -90,9 +99,9 @@ function renderEvidence(items, meta, refusal) {
 function renderVotes(rows) {
   const box = document.getElementById("votes");
   if (!rows || !rows.length) { box.innerHTML = ""; return; }
-  box.innerHTML = "<h3>Votes (from the database)</h3><table><tr><th>Resolution</th><th>Date</th><th>Vote</th></tr>" +
+  box.innerHTML = "<h3>Votes (from the database)</h3><div class='table-wrap'><table><thead><tr><th>Resolution</th><th>Date</th><th>Vote</th></tr></thead><tbody>" +
     rows.map(r => `<tr><td>${esc(r.symbol)}</td><td>${esc(r.date || "")}</td><td><strong>${esc(r.vote)}</strong></td></tr>`).join("") +
-    "</table>";
+    "</tbody></table></div>";
 }
 
 document.getElementById("askform").addEventListener("submit", async () => {
@@ -100,9 +109,12 @@ document.getElementById("askform").addEventListener("submit", async () => {
   if (!question) return;
   const button = document.getElementById("send");
   button.disabled = true;
-  document.getElementById("answer").textContent = "";
+  const answerBox = document.getElementById("answer");
+  answerBox.textContent = "";
+  answerBox.classList.add("streaming");
   document.getElementById("flags").innerHTML = "";
   document.getElementById("evidence").textContent = "Retrieving…";
+  document.getElementById("votes").innerHTML = "";
 
   const form = new FormData();
   form.append("question", question);
@@ -118,7 +130,6 @@ document.getElementById("askform").addEventListener("submit", async () => {
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "", answerText = "";
-    const answerBox = document.getElementById("answer");
     answerBox.classList.remove("muted");
 
     while (true) {
@@ -142,17 +153,21 @@ document.getElementById("askform").addEventListener("submit", async () => {
           answerBox.textContent = answerText;
         } else if (event === "done") {
           answerBox.textContent = data.expanded || data.answer || answerText;
+          answerBox.classList.remove("streaming");
           document.getElementById("flags").innerHTML = (data.flags || []).map(f =>
             `<div class="flag ${f.level}">${esc(f.message)}${f.sentence ? "<br><em>" + esc(f.sentence) + "</em>" : ""}</div>`
           ).join("");
         } else if (event === "error") {
+          answerBox.classList.remove("streaming");
           document.getElementById("flags").innerHTML = `<div class="flag error">${esc(data.message)}</div>`;
         }
       }
     }
   } catch (err) {
+    answerBox.classList.remove("streaming");
     document.getElementById("flags").innerHTML = `<div class="flag error">${esc(err.message)}</div>`;
   } finally {
+    answerBox.classList.remove("streaming");
     button.disabled = false;
   }
 });

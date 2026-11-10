@@ -1,16 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Settings</h1>
-<p class="muted">Endpoint {{ health.endpoint }} ·
-  <span class="pill {{ 'ok' if health.ok else 'bad' }}">{{ 'reachable' if health.ok else 'offline' }}</span>
-  {% if context %}<span class="pill ok">context {{ context }}</span>{% endif %}
-</p>
+<div class="page-head page-head-row">
+  <div>
+    <p class="kicker">Configuration</p>
+    <h1>Settings</h1>
+    <p class="lede">Endpoint {{ health.endpoint }} ·
+      {{ 'reachable' if health.ok else 'offline' }}.
+      {% if context %}Context {{ context }} tokens.{% endif %}</p>
+  </div>
+  <div class="row">
+    <span class="pill {{ 'ok' if health.ok else 'bad' }}">{{ 'reachable' if health.ok else 'offline' }}</span>
+    {% if context %}<span class="pill ok">ctx {{ context }}</span>{% endif %}
+  </div>
+</div>
 
-<form method="post" action="/settings" class="card">
-  <label for="base_url">Ollama endpoint</label>
+<form method="post" action="/settings" class="card" data-reveal>
+  <p class="kicker" style="margin-bottom:8px">Model</p>
+  <h2 style="margin:0">Ollama</h2>
+
+  <label for="base_url">Endpoint</label>
   <input id="base_url" name="base_url" value="{{ cfg.base_url }}">
 
-  <div class="grid two">
+  <div class="grid two" style="gap:0 20px">
     <div>
       <label for="model">Chat model</label>
       <input id="model" name="model" value="{{ cfg.model }}">
@@ -21,7 +32,7 @@
     </div>
   </div>
 
-  <div class="grid two">
+  <div class="grid two" style="gap:0 20px">
     <div>
       <label for="context_length">Context length (tokens)</label>
       <input id="context_length" name="context_length" type="number" value="{{ cfg.context_length }}">
@@ -32,7 +43,7 @@
     </div>
   </div>
 
-  <div class="grid two">
+  <div class="grid two" style="gap:0 20px">
     <div>
       <label for="theme">Theme</label>
       <select id="theme" name="theme">
@@ -49,19 +60,20 @@
     </div>
   </div>
 
-  <div class="row" style="margin-top:16px"><button type="submit">Save settings</button></div>
+  <div class="row" style="margin-top:20px"><button type="submit">Save settings</button></div>
 </form>
 
-<div class="card">
-  <h2 style="margin-top:0">Library</h2>
-  <table>
-    <tr><td>Documents</td><td>{{ health.docs }}</td></tr>
-    <tr><td>Chunks</td><td>{{ health.chunks }}</td></tr>
-    <tr><td>Embeddings</td><td>{{ health.vectors }}</td></tr>
-    <tr><td>Edges</td><td>{{ health.edges }}</td></tr>
-  </table>
-  <p class="muted">Rebuild embeddings after changing the embedding model:
-    <span class="kbd">python -m app.ingest.pipeline</span> re-embeds only missing chunks.
-    Use <span class="kbd">scripts/reembed.py</span> to force a full rebuild.</p>
+<div class="card" data-reveal>
+  <p class="kicker" style="margin-bottom:8px">Index</p>
+  <h2 style="margin:0 0 12px">Library</h2>
+  <div class="meter-list">
+    <div class="meter-row"><span>Documents</span><b>{{ health.docs }}</b></div>
+    <div class="meter-row"><span>Chunks</span><b>{{ health.chunks }}</b></div>
+    <div class="meter-row"><span>Embeddings</span><b>{{ health.vectors }}</b></div>
+    <div class="meter-row"><span>Edges</span><b>{{ health.edges }}</b></div>
+  </div>
+  <p class="muted" style="margin:14px 0 0;font-size:13px">Rebuild embeddings after changing the
+    embedding model: <span class="kbd">python -m app.ingest.pipeline</span> re-embeds only missing
+    chunks. Use <span class="kbd">scripts/reembed.py</span> to force a full rebuild.</p>
 </div>
 {% endblock %}
